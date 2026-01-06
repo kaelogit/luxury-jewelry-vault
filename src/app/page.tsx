@@ -1,65 +1,68 @@
-import Image from "next/image";
+'use client'
+
+import React from 'react'
+import { motion } from 'framer-motion'
+
+// INSTITUTIONAL COMPONENTS
+import Hero from '@/components/home/hero/Hero'
+import VaultExplorer from '@/components/home/VaultExplorer'
+import SecurityStandards from '@/components/home/SecurityStandards'
+import MempoolTicker from '@/components/home/MempoolTicker'
+import ConciergeCall from '@/components/home/ConciergeCall'
+import HomeTracker from '@/components/home/HomeTracker'
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-ivory-100 overflow-x-hidden selection:bg-gold selection:text-white">
+      
+      {/* 1. THE 3D INGRESS (The Vault Entrance) */}
+      <section className="relative h-screen">
+        <Hero />
+      </section>
+
+      {/* 2. THE MARKET PULSE: Sovereign Ticker */}
+      {/* Updated to Pearl/Gold sticky header */}
+      <div className="sticky top-[70px] md:top-[80px] z-30 bg-white/70 backdrop-blur-2xl border-y border-ivory-300">
+        <MempoolTicker />
+      </div>
+
+      {/* 3. THE ASSET REGISTRY: Vault Explorer */}
+      {/* Using editorial spacing to highlight the ivory canvas */}
+      <section className="relative z-10 py-24 md:py-48">
+        <div className="max-w-[1700px] mx-auto">
+          <VaultExplorer />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+      </section>
+
+      {/* 4. THE AUDIT BRIDGE: Chain of Custody */}
+      {/* Replaces the industrial 'Tracker' look with a sleek Audit Ingress */}
+      <section className="bg-white py-24 md:py-48 border-y border-ivory-300 shadow-inner">
+        <HomeTracker />
+      </section>
+
+      {/* 5. THE FOUNDATIONAL CHARTER: Security Standards */}
+      <motion.section 
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        transition={{ duration: 1.5 }}
+        viewport={{ once: true }}
+        className="py-24 md:py-48 bg-ivory-100"
+      >
+        <SecurityStandards />
+      </motion.section>
+
+      {/* 6. THE PRIVATE DESK: Concierge Command */}
+      {/* The final CTA before the footer */}
+      <section className="pb-32 md:pb-64 bg-ivory-100">
+        <ConciergeCall />
+      </section>
+
+      {/* DECORATIVE AMBIENCE: Subtle Gold Glows */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-1/4 -left-64 w-[600px] h-[600px] bg-gold/5 blur-[150px] rounded-full" />
+        <div className="absolute bottom-1/4 -right-64 w-[600px] h-[600px] bg-gold/5 blur-[150px] rounded-full" />
+      </div>
+
+    </main>
+  )
 }
