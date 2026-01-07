@@ -1,149 +1,187 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   Truck, ShieldCheck, MapPin, Package, 
   ClipboardCheck, UserCheck, Globe, Clock, 
-  ChevronRight, Box, Navigation, Zap
+  ChevronRight, Box, Navigation, Zap, Search, Loader2
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { supabase } from '@/lib/supabase'
 
-export default function SovereignTracking() {
+export default function AdminLogistics() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null)
+  const [deliveries, setDeliveries] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Placeholder Manifest - Real data should come from your 'logistics' table
-  const activeDeliveries = [
-    { id: 'LV-9928', item: '24K Solid Gold Cuban Link', client: 'Jonathan Wick', status: 'IN TRANSIT', value: '$52,000' },
-    { id: 'LV-9930', item: '5.0ct VVS1 Round Brilliant', client: 'S. Nakamoto', status: 'IN VAULT', value: '$85,400' },
-  ]
+  // I. SYNC ACTIVE SHIPMENTS
+  useEffect(() => {
+    const fetchLogistics = async () => {
+      // Fetching orders that are in 'logistics' or 'verifying' phase
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .in('status', ['verifying', 'logistics', 'delivered'])
+        .order('updated_at', { ascending: false })
+
+      if (data) setDeliveries(data)
+      setLoading(false)
+    }
+
+    fetchLogistics()
+    
+    // Real-time listener for logistics updates
+    const channel = supabase.channel('logistics-sync').on('postgres_changes', { 
+      event: '*', schema: 'public', table: 'orders' 
+    }, () => fetchLogistics()).subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [])
+
+  const updateLogistics = async (status: string) => {
+    if (!selectedOrder) return
+    
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: status.toLowerCase() })
+      .eq('id', selectedOrder.id)
+
+    if (!error) {
+      // In a real scenario, you'd also insert into a 'tracking_history' table here
+      alert('Logistics Milestone Updated')
+    }
+  }
+
+  if (loading) return (
+    <div className="h-screen bg-ivory-50 flex flex-col items-center justify-center gap-4">
+      <Loader2 className="text-gold animate-spin" size={32} strokeWidth={1.5} />
+      <p className="label-caps text-obsidian-400">Syncing Global Hubs</p>
+    </div>
+  )
 
   return (
-    <div className="space-y-12 pb-10 selection:bg-gold selection:text-white">
+    <div className="space-y-10 pb-20">
       
-      {/* 1. LOGISTICS HEADER */}
-      <header className="flex flex-col gap-3">
-        <div className="flex items-center gap-4">
-          <div className="w-2.5 h-2.5 rounded-full bg-gold shadow-[0_0_15px_gold] animate-pulse" />
-          <h2 className="text-4xl md:text-5xl font-light text-obsidian-900 italic tracking-tighter">
-            Chain of <span className="text-obsidian-400">Custody.</span>
-          </h2>
-        </div>
-        <p className="text-obsidian-400 font-black tracking-[0.4em] uppercase text-[10px] italic border-l-2 border-gold pl-6">
-          Global Logistics & Physical Asset Tracking Protocol
-        </p>
+      {/* HEADER */}
+      <header className="flex flex-col gap-2">
+        <h2 className="text-4xl md:text-6xl font-medium tracking-tight text-obsidian-900 font-serif italic">
+          Logistics <span className="text-gold not-italic">Desk.</span>
+        </h2>
+        <p className="label-caps text-obsidian-400">Physical Asset Tracking & Fulfillment</p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* 2. SHIPMENT MANIFEST (LEFT) */}
-        <div className="space-y-6">
-          <h3 className="text-[11px] uppercase tracking-[0.5em] text-gold font-black italic">Active Shipments</h3>
-          <div className="space-y-4">
-            {activeDeliveries.map((order) => (
-              <motion.div 
-                whileHover={{ x: 5 }}
+        {/* 2. ACTIVE MANIFEST (LEFT) */}
+        <div className="lg:col-span-4 space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="label-caps text-obsidian-900">Active Manifests</h3>
+            <div className="p-2 bg-white border border-ivory-300 rounded-lg">
+                <Search size={14} className="text-obsidian-300" />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {deliveries.map((order) => (
+              <div 
                 key={order.id}
                 onClick={() => setSelectedOrder(order)}
-                className={`p-8 bg-white border rounded-[2.5rem] cursor-pointer transition-all duration-500 shadow-sm ${
+                className={`p-6 bg-white border rounded-xl cursor-pointer transition-all duration-300 shadow-sm ${
                   selectedOrder?.id === order.id 
-                  ? 'border-gold bg-ivory-50 ring-1 ring-gold/20' 
-                  : 'border-ivory-300 hover:border-gold/30'
+                  ? 'border-gold bg-ivory-50 ring-1 ring-gold/10' 
+                  : 'border-ivory-300 hover:border-gold'
                 }`}
               >
-                <div className="flex justify-between items-start mb-4">
-                  <span className="text-[10px] font-mono font-bold text-obsidian-300 uppercase tracking-tighter">{order.id}</span>
-                  <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${
-                    order.status === 'IN TRANSIT' ? 'bg-gold text-white shadow-[0_0_10px_gold/20]' : 'bg-ivory-200 text-obsidian-400'
+                <div className="flex justify-between items-start mb-3">
+                  <span className="text-[9px] font-mono font-bold text-obsidian-300 uppercase tracking-widest">#{order.id.slice(0,8)}</span>
+                  <span className={`text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-md ${
+                    order.status === 'logistics' ? 'bg-gold text-white' : 'bg-ivory-200 text-obsidian-500'
                   }`}>
-                    {order.status}
+                    {order.status === 'logistics' ? 'In Transit' : order.status}
                   </span>
                 </div>
-                <h4 className="text-md font-black text-obsidian-900 uppercase tracking-tight mb-2 italic leading-tight">{order.item}</h4>
+                <h4 className="text-xs font-bold text-obsidian-900 uppercase tracking-tight mb-2 truncate">
+                    {order.items?.[0]?.name || 'Luxury Selection'}
+                </h4>
                 <div className="flex items-center gap-2 text-obsidian-400">
                   <UserCheck size={12} className="text-gold" />
-                  <p className="text-[10px] font-bold uppercase tracking-widest">{order.client}</p>
+                  <p className="text-[9px] font-bold uppercase tracking-widest">{order.client_name}</p>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* 3. TIMELINE COMMAND (RIGHT) */}
-        <div className="lg:col-span-2">
+        {/* 3. TRACKING TERMINAL (RIGHT) */}
+        <div className="lg:col-span-8">
           <AnimatePresence mode="wait">
             {selectedOrder ? (
               <motion.div 
                 key={selectedOrder.id}
-                initial={{ opacity: 0, y: 20 }} 
-                animate={{ opacity: 1, y: 0 }} 
-                exit={{ opacity: 0, y: -20 }}
-                className="bg-white border border-ivory-300 rounded-[3.5rem] p-10 md:p-14 shadow-2xl relative overflow-hidden"
+                initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
+                className="bg-white border border-ivory-300 rounded-2xl p-10 shadow-sm relative overflow-hidden"
               >
-                {/* Visual Accent */}
-                <Globe className="absolute -right-10 -top-10 text-gold opacity-[0.03] w-64 h-64" />
-
-                <div className="flex justify-between items-start mb-16 pb-8 border-b border-ivory-200">
-                  <div className="space-y-2">
-                    <h3 className="text-3xl font-light text-obsidian-900 italic tracking-tighter">Timeline Management</h3>
-                    <p className="text-[10px] text-obsidian-400 uppercase tracking-widest font-black italic">Syncing Updates with Client Node: {selectedOrder.id}</p>
+                <div className="flex justify-between items-start mb-12 pb-8 border-b border-ivory-100">
+                  <div className="space-y-1">
+                    <h3 className="text-2xl font-medium text-obsidian-900 font-serif italic">Dispatch Control</h3>
+                    <p className="text-[10px] text-obsidian-400 font-bold uppercase tracking-widest">Client Ref: {selectedOrder.id}</p>
                   </div>
                   <div className="text-right space-y-1">
-                    <p className="text-[10px] text-gold font-black uppercase tracking-[0.4em]">Asset Valuation</p>
-                    <p className="text-2xl font-mono font-bold text-obsidian-900 italic">{selectedOrder.value}</p>
+                    <p className="text-[10px] text-gold font-bold uppercase tracking-widest">Insurance Value</p>
+                    <p className="text-2xl font-medium text-obsidian-900 font-serif italic">${Number(selectedOrder.total_price || selectedOrder.total_valuation).toLocaleString()}</p>
                   </div>
                 </div>
 
-                {/* UPDATE INGRESS FORM */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 p-10 bg-ivory-50 border border-gold/10 rounded-[3rem] shadow-inner">
-                  <div className="space-y-4">
-                    <label className="text-[10px] uppercase text-obsidian-400 font-black tracking-widest ml-4 italic">Update Milestone</label>
-                    <select className="w-full bg-white border border-ivory-300 p-5 rounded-2xl text-[11px] font-bold text-obsidian-900 uppercase tracking-widest outline-none focus:border-gold transition-all appearance-none shadow-sm">
-                      <option>Undergoing Final Polish</option>
-                      <option>Gemologist Inspection Passed</option>
-                      <option>Secured in Transit Case</option>
-                      <option>Out for Private Delivery</option>
-                      <option>Hand-Delivered to Client</option>
+                {/* UPDATE ACTION GRID */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 p-8 bg-ivory-50 rounded-xl border border-ivory-200">
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-bold uppercase tracking-widest text-obsidian-400 ml-1">New Milestone</label>
+                    <select 
+                        onChange={(e) => updateLogistics(e.target.value)}
+                        className="w-full bg-white border border-ivory-300 p-3 rounded-lg text-[10px] font-bold text-obsidian-900 uppercase tracking-widest outline-none focus:border-gold"
+                    >
+                      <option value="">Update Phase...</option>
+                      <option value="verifying">Verification Process</option>
+                      <option value="logistics">Release to Courier</option>
+                      <option value="delivered">Confirmed Delivery</option>
                     </select>
                   </div>
-                  <div className="space-y-4">
-                    <label className="text-[10px] uppercase text-obsidian-400 font-black tracking-widest ml-4 italic">Current Coordinates</label>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-bold uppercase tracking-widest text-obsidian-400 ml-1">Current Hub</label>
                     <div className="relative">
-                      <Navigation className="absolute left-5 top-1/2 -translate-y-1/2 text-gold" size={14} />
-                      <input type="text" placeholder="e.g. LUME DEPOT, ZURICH" className="w-full bg-white border border-ivory-300 p-5 pl-14 rounded-2xl text-[11px] text-obsidian-900 uppercase font-black outline-none focus:border-gold shadow-sm" />
+                      <Navigation className="absolute left-3 top-1/2 -translate-y-1/2 text-gold" size={14} />
+                      <input type="text" placeholder="e.g. ZURICH DEPOT" className="w-full bg-white border border-ivory-300 p-3 pl-10 rounded-lg text-[10px] text-obsidian-900 uppercase font-bold outline-none focus:border-gold" />
                     </div>
                   </div>
-                  <button className="md:col-span-2 py-6 bg-obsidian-900 text-gold text-[11px] font-black uppercase tracking-[0.4em] rounded-[1.5rem] hover:bg-gold hover:text-white transition-all duration-500 shadow-xl flex items-center justify-center gap-4 group">
-                    Finalize Logistics Update <Zap size={14} className="group-hover:scale-125 transition-transform" />
-                  </button>
                 </div>
 
-                {/* CHAIN OF CUSTODY TIMELINE */}
-                <div className="space-y-10 relative before:absolute before:left-[17px] before:top-4 before:bottom-4 before:w-[1px] before:bg-gold/20">
-                  <TimelineItem 
-                    icon={<ClipboardCheck size={16}/>} 
-                    title="Final Gemologist Appraisal" 
-                    location="Manhattan Headquarters" 
-                    time="JAN 04, 2026 - 09:12 AM" 
+                {/* LIVE TRACKING TIMELINE */}
+                <div className="space-y-8 relative before:absolute before:left-[19px] before:top-4 before:bottom-4 before:w-[1px] before:bg-ivory-200">
+                  <TimelineStep 
+                    icon={<Truck size={14}/>} 
+                    title="Courier Dispatched" 
+                    location="Vault HQ, NYC" 
+                    time="Current Status" 
                     active 
                   />
-                  <TimelineItem 
-                    icon={<ShieldCheck size={16}/>} 
-                    title="Secured in Armored Vault" 
-                    location="Secure Depot, NYC" 
-                    time="JAN 03, 2026 - 04:30 PM" 
+                  <TimelineStep 
+                    icon={<ShieldCheck size={14}/>} 
+                    title="Authentication Handover" 
+                    location="Secure Depot" 
+                    time="Jan 06, 2026" 
                   />
-                  <TimelineItem 
-                    icon={<Package size={16}/>} 
-                    title="Packaging Protocol Initiated" 
-                    location="Lume Vault HQ" 
-                    time="JAN 03, 2026 - 11:20 AM" 
+                  <TimelineStep 
+                    icon={<Package size={14}/>} 
+                    title="Order Processed" 
+                    location="Lume Vault" 
+                    time="Jan 05, 2026" 
                   />
                 </div>
               </motion.div>
             ) : (
-              <div className="flex flex-col items-center justify-center text-obsidian-200 h-full border border-ivory-300 border-dashed rounded-[4rem] bg-white">
-                <Truck size={80} className="mb-6 opacity-10" />
-                <p className="text-[12px] uppercase tracking-[0.6em] font-black italic">Select Manifest to Inspect Logistics</p>
+              <div className="flex flex-col items-center justify-center text-obsidian-200 h-full border border-ivory-300 border-dashed rounded-2xl bg-white p-20">
+                <Truck size={48} className="mb-4 opacity-20" />
+                <p className="label-caps text-obsidian-300">Select a manifest to manage logistics</p>
               </div>
             )}
           </AnimatePresence>
@@ -153,26 +191,26 @@ export default function SovereignTracking() {
   )
 }
 
-function TimelineItem({ icon, title, location, time, active = false }: any) {
+function TimelineStep({ icon, title, location, time, active = false }: any) {
   return (
-    <div className="flex gap-8 relative group">
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center z-10 border-2 transition-all duration-700 shadow-sm ${
+    <div className="flex gap-6 relative group">
+      <div className={`w-10 h-10 rounded-full flex items-center justify-center z-10 border transition-all duration-500 shadow-sm ${
         active 
-        ? 'bg-obsidian-900 text-gold border-gold scale-110 shadow-gold/20' 
-        : 'bg-ivory-100 text-obsidian-300 border-ivory-300'
+        ? 'bg-obsidian-900 text-gold border-gold' 
+        : 'bg-white text-obsidian-300 border-ivory-300'
       }`}>
         {icon}
       </div>
-      <div className="flex flex-col gap-2">
-        <h4 className={`text-sm font-black uppercase tracking-tight italic ${active ? 'text-obsidian-900' : 'text-obsidian-300'}`}>
+      <div className="flex flex-col">
+        <h4 className={`text-[11px] font-bold uppercase tracking-widest ${active ? 'text-obsidian-900' : 'text-obsidian-400'}`}>
           {title}
         </h4>
-        <div className="flex flex-wrap gap-6 items-center">
-          <div className="flex items-center gap-2 text-[10px] text-obsidian-400 font-bold uppercase tracking-widest">
-            <MapPin size={12} className="text-gold" /> {location}
+        <div className="flex gap-4 items-center mt-1">
+          <div className="flex items-center gap-1.5 text-[9px] text-obsidian-400 font-bold uppercase tracking-widest">
+            <MapPin size={10} className="text-gold" /> {location}
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-obsidian-300 font-mono italic font-bold">
-            <Clock size={12} /> {time}
+          <div className="flex items-center gap-1.5 text-[9px] text-obsidian-300 font-medium uppercase tracking-widest">
+            <Clock size={10} /> {time}
           </div>
         </div>
       </div>

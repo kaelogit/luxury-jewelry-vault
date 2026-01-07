@@ -2,14 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 1. RESET & OPULENT THEME */
+/* 1. CORE THEME: High-Contrast Ivory & Obsidian */
 :root {
-  --background: #FBFBF7;     /* Ivory/Pearl - Slightly warmer for eye comfort */
-  --foreground: #0A0A0A;     /* Obsidian - True deep black */
-  --text-primary: #121212;   /* High-contrast black for main copy */
-  --text-muted: #525252;     /* CHANGED: From #7A to #52 for accessibility/visibility */
-  --gold-primary: #C5A028;   /* Deepened Gold for better readability on white */
-  --gold-glow: rgba(197, 160, 40, 0.1);
+  --background: #FBFBF7;     /* Pearl Ivory */
+  --foreground: #050505;     /* Pure Obsidian */
+  --text-primary: #121212;   /* Main Body Copy */
+  --text-muted: #525252;     /* High-Visibility Muted Text */
+  --gold-primary: #C5A028;   /* Deep Champagne Gold */
   --selection-bg: #C5A028;
 }
 
@@ -26,43 +25,44 @@ body {
   overflow-x: hidden;
   background: var(--background);
   color: var(--text-primary);
-  /* REFINED: Using our Montserrat and Cormorant font variables */
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
-/* 3. LUXURY TYPOGRAPHY PROTOCOL */
+/* 3. TYPOGRAPHY: Commercial Luxury Standard */
 h1, h2, h3, h4 {
   color: var(--foreground) !important;
   font-family: var(--font-serif);
-  font-weight: 500; /* Increased from 300 for visibility */
-  letter-spacing: -0.01em; /* Less aggressive tracking for readability */
+  font-weight: 500; 
+  letter-spacing: -0.01em;
 }
 
-/* VISIBILITY UTILITY: Force inputs to be legible */
+/* INPUT VISIBILITY: Essential for high-end commerce */
 input, select, textarea {
   color: var(--foreground) !important;
   font-weight: 500 !important;
+  background-color: #FFFFFF !important; /* Pure white background for inputs */
 }
 
-/* PLACEHOLDER PROTOCOL: High visibility for placeholders */
+/* PLACEHOLDER: Ensure they are legible but distinct */
 input::placeholder, 
 textarea::placeholder {
-  color: #949494 !important; /* Visible but distinct from user input */
+  color: #8A8A8A !important; 
   opacity: 1;
 }
 
-.label-sovereign {
+/* Replaced .label-sovereign with .label-caps (Normal word) */
+.label-caps {
   color: var(--gold-primary);
-  font-weight: 700; /* Re-balanced from 900 for modern feel */
+  font-weight: 700;
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.4em;
+  letter-spacing: 0.3em;
 }
 
-/* 4. CUSTOM SCROLLBAR (Floating Gold Protocol) */
+/* 4. SCROLLBAR: Floating Gold */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -77,20 +77,25 @@ textarea::placeholder {
   border: 3px solid var(--background); 
 }
 
-/* 5. SELECTION: High contrast Gold */
+/* 5. SELECTION */
 ::selection {
   background: var(--selection-bg);
   color: #FFFFFF;
 }
 
-/* 6. MOBILE RESPONSIVENESS PATCH */
+/* 6. MOBILE RESPONSIVENESS */
 @media (max-width: 768px) {
-  h1 { font-size: 2.5rem !important; }
-  .label-sovereign { letter-spacing: 0.3em; font-size: 9px; }
+  h1 { font-size: 2.25rem !important; }
+  .label-caps { letter-spacing: 0.2em; font-size: 10px; }
+  
+  /* Prevent zoom on mobile inputs */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
 }
 
-/* 7. FLASHY ASSET UTILITIES */
-.gold-shimmer {
+/* 7. ASSET UTILITIES */
+.shimmer-gold {
   background: linear-gradient(
     to right, 
     #BF953F 0%, 

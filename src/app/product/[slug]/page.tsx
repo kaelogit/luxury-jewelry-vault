@@ -4,22 +4,23 @@ import ProductClient from './ProductClient'
 import { notFound } from 'next/navigation'
 
 type Props = {
-  params: { slug: string }
+  params: Promise<{ slug: string }> // Next.js 15 requires params to be a Promise
 }
 
 /**
- * SOVEREIGN METADATA PROTOCOL
- * Generates dynamic SEO and Social data based on the Vault Inventory
+ * METADATA ENGINE
+ * Generates dynamic SEO based on the standardized Master SQL columns
  */
 export async function generateMetadata(
   { params }: Props,
   parent: ResolvingMetadata
 ): Promise<Metadata> {
-  // We select the necessary fields for a high-end SEO preview
+  const { slug } = await params
+  
   const { data: product } = await supabase
     .from('products')
-    .select('title, description, image_url, price, asset_class')
-    .eq('slug', params.slug)
+    .select('name, description, image, price, category')
+    .eq('slug', slug)
     .single()
 
   if (!product) {
@@ -35,54 +36,57 @@ export async function generateMetadata(
     maximumFractionDigits: 0,
   }).format(product.price)
 
-  // Dynamic Class Branding
-  const classBranding = product.asset_class === 'WATCH' 
+  // Class Branding Logic synced with Master SQL
+  const classBranding = product.category === 'Watches' 
     ? 'HOROLOGICAL MASTERPIECE' 
-    : product.asset_class === 'DIAMOND' 
+    : product.category === 'Diamonds' 
     ? 'CERTIFIED GEMSTONE' 
-    : 'PURE BULLION ASSET'
+    : 'PURE 24K BULLION'
 
   return {
-    title: `${product.title} | ${classBranding}`,
-    description: product.description || `Secure acquisition of this ${product.asset_class} asset via LUME Sovereign Protocol.`,
+    title: `${product.name} | ${classBranding}`,
+    description: product.description || `Secure acquisition of this ${product.category} asset via LUME Vault.`,
     openGraph: {
-      title: `${product.title} — ${priceLabel}`,
-      description: `Secured in LUME Vault. Professional logistics and escrow-based settlement active.`,
-      images: [{ url: product.image_url || '' }],
+      title: `${product.name} — ${priceLabel}`,
+      description: `Secured in LUME Vault. Insured logistics and direct settlement active.`,
+      images: [{ url: product.image || '' }],
       type: 'website',
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${product.title} — LUME VAULT`,
-      description: `Cryptographic Settlement: ${priceLabel}`,
-      images: [product.image_url || ''],
+      title: `${product.name} — LUME VAULT`,
+      description: `Current Valuation: ${priceLabel}`,
+      images: [product.image || ''],
     },
   }
 }
 
 /**
- * THE SERVER INGRESS
- * Performs a dual-fetch protocol to eliminate client-side loading flickers.
+ * MASTER SERVER FETCH
+ * Standardized for the new SQL Schema
  */
 export default async function Page({ params }: Props) {
-  // 1. Fetch Primary Asset (Using * to ensure all technical specs are passed)
+  const { slug } = await params
+
+  // 1. Fetch Primary Asset using updated column names
   const { data: product, error } = await supabase
     .from('products')
     .select('*')
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .single()
 
   if (!product || error) notFound()
 
-  // 2. Fetch "Complementary Acquisitions" (20 Random Recommendations)
-  // Change the select statement to include everything the interface needs:
-const { data: recommendations } = await supabase
-  .from('products')
-  .select('id, title, price, image_url, slug, asset_class, specifications, gia_report_number, gold_purity, serial_number, description')
-  .neq('id', product.id)
-  .limit(20);
+  // 2. Fetch "Complementary Acquisitions" (Recommendations)
+  // Standardized columns: name, category, image
+  const { data: recommendations } = await supabase
+    .from('products')
+    .select('id, name, price, image, slug, category, specifications, gia_report, gold_purity, serial_number, description')
+    .neq('id', product.id)
+    .limit(20)
 
-  // 3. Handshake with ProductClient
+  // 3. Sync with ProductClient
+  // We pass the product and recommendations with corrected keys
   return (
     <ProductClient 
       product={product} 

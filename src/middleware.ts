@@ -34,21 +34,21 @@ export async function middleware(request: NextRequest) {
     }
   )
 
+  // Get current user session
   const { data: { user } } = await supabase.auth.getUser()
   const pathname = request.nextUrl.pathname
 
-  // 1. If user is logged in and tries to access Login/Signup, send them to Dashboard
+  // 1. AUTH REDIRECT: If logged in, don't show login/signup pages
   if (user && (pathname.startsWith('/auth/login') || pathname.startsWith('/auth/signup'))) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // 2. Protect Admin Routes
+  // 2. ADMIN PROTECTION: Verify role from database
   if (pathname.startsWith('/admin')) {
     if (!user) {
       return NextResponse.redirect(new URL('/auth/login', request.url))
     }
 
-    // We fetch the role directly from the profile table to verify Admin status
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -60,7 +60,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 3. Protect Customer Dashboard
+  // 3. DASHBOARD PROTECTION: Customer-only areas
   if (pathname.startsWith('/dashboard') && !user) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }

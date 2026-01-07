@@ -4,62 +4,54 @@ module.exports = {
     "./src/**/*.{js,ts,jsx,tsx,mdx}", 
   ],
   theme: {
+    // FORCE READABLE SCREEN SIZES FOR MOBILE-FIRST DESIGN
+    screens: {
+      'xs': '375px',
+      'sm': '640px',
+      'md': '768px',
+      'lg': '1024px',
+      'xl': '1280px',
+      '2xl': '1536px',
+    },
     extend: {
       colors: {
-        // THE OPULENT PALETTE
-        // Main Background: 'Ivory/Pearl'
-        // Primary Text: 'Deep Obsidian'
-        // Accent: 'Sovereign Gold'
+        // THE REFINED AUVERE-INSPIRED PALETTE
         ivory: {
           50: '#FFFFFF',
-          100: '#FDFCFB',  // THE MAIN BACKGROUND (Creamy White)
-          200: '#F7F5F0',  // Section Fills
-          300: '#E8E4D9',  // Borders & Dividers
+          100: '#FBFBF7',  // INSTITUTIONAL BASE (Soft, high-end off-white)
+          200: '#F2F0E8',  // Section Fills
+          300: '#DEDAC7',  // Borders (Darkened for visibility)
         },
         obsidian: {
-          900: '#0A0A0A',  // MAIN TEXT (Headings)
-          800: '#1A1A1A',  // Sub-headings
-          600: '#4A4A4A',  // Body Text
-          400: '#7A7A7A',  // Muted Labels
+          900: '#050505',  // TRUE BLACK (Headings & Primary UI)
+          800: '#121212',  // Sub-headings
+          600: '#3D3D3D',  // HIGH-VISIBILITY Body Text
+          400: '#666666',  // Readable Labels/Placeholders
+          300: '#949494',  // Muted secondary text
         },
         gold: {
           50: '#FBF8E7',
           100: '#F1E5AC',
           200: '#E7D271',
-          DEFAULT: '#D4AF37', // CHAMPAGNE GOLD (Signature Color)
+          DEFAULT: '#C5A028', // DEEP CHAMPAGNE (Better contrast on white backgrounds)
           400: '#B8860B',
-          500: '#996515', // Darker Gold for hover states
-        },
-        // We keep zinc but shift it to support a light theme logic
-        zinc: {
-          50: '#050505',   // Now Zinc 50 is Black (inverted logic)
-          950: '#FDFCFB',  // Now Zinc 950 is the light base
+          500: '#996515', 
         },
       },
       fontFamily: {
-        // We use Geist but add a Serif fallback for that 'Jewelry Magazine' feel
-        sans: ['var(--font-geist-sans)', 'Inter', 'serif'],
-        mono: ['var(--font-geist-mono)', 'monospace'],
+        // CLEAN TYPOGRAPHY: Montserrat for UI, Cormorant for Luxury Titles
+        serif: ['var(--font-serif)', 'Cormorant Garamond', 'serif'],
+        sans: ['var(--font-sans)', 'Montserrat', 'sans-serif'],
       },
       animation: {
         'pulse-slow': 'pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'fade-in': 'fadeIn 1.2s ease-out forwards',
-        'scan': 'scan 3s linear infinite',
-        'float': 'float 6s ease-in-out infinite',
+        'fade-in': 'fadeIn 1s ease-out forwards',
         'shimmer': 'shimmer 2.5s linear infinite',
       },
       keyframes: {
         fadeIn: {
-          '0%': { opacity: '0', transform: 'translateY(15px)' },
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        scan: {
-          '0%': { transform: 'translateY(-100%)' },
-          '100%': { transform: 'translateY(100%)' },
-        },
-        float: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-20px)' },
         },
         shimmer: {
           '0%': { backgroundPosition: '-200% 0' },
@@ -67,10 +59,7 @@ module.exports = {
         }
       },
       backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        // 'Flashy' Gold Gradient
         'gold-silk': 'linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)',
-        'vault-noise': "url('https://grainy-gradients.vercel.app/noise.svg')",
       },
     },
   },

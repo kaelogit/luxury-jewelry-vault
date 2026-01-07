@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ShoppingBag, Menu, X, ShieldCheck, Fingerprint, User } from 'lucide-react'
+import { ShoppingBag, Menu, X, User, Search } from 'lucide-react'
 import SelectionDrawer from '../ui/SelectionDrawer'
 import { useUIStore } from '@/store/useUIStore'
 import { useSelectionStore } from '@/store/useSelectionStore'
@@ -24,101 +24,105 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className={`fixed top-0 w-full z-[100] transition-all duration-1000 px-6 py-6 md:px-12 ${
-        isScrolled 
-        ? 'bg-white/80 backdrop-blur-2xl border-b border-ivory-300 py-4 shadow-sm' 
-        : 'bg-transparent'
-      }`}>
-        <div className="max-w-screen-2xl mx-auto flex justify-between items-center">
-          
-          {/* I. BRAND IDENTITY: The Editorial Masthead */}
-          <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="group">
-            <h1 className="text-lg md:text-xl font-light tracking-tighter text-obsidian-900 italic uppercase">
-              Lume <span className="text-obsidian-400">Vault<span className="text-gold">.</span></span>
-            </h1>
-          </Link>
+      {/* I. ANNOUNCEMENT BAR (The Auvere Header) */}
+      <div className="fixed top-0 w-full z-[110] bg-obsidian-900 py-2 px-6 text-center">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold">
+          Complimentary Insured Shipping on all Orders
+        </p>
+      </div>
 
-          {/* II. DESKTOP REGISTRY: Institutional Links */}
-          <div className="hidden lg:flex items-center gap-12">
-            <NavLink href="/collection" label="Collection" />
-            <NavLink href="/protocol/tracking" label="Logistics" />
-            <NavLink href="/concierge" label="Concierge" />
+      <nav className={`fixed top-9 w-full z-[100] transition-all duration-500 px-6 md:px-12 ${
+        isScrolled 
+        ? 'bg-white/95 backdrop-blur-md border-b border-ivory-300 py-3 shadow-sm' 
+        : 'bg-transparent py-6'
+      }`}>
+        <div className="max-w-screen-2xl mx-auto flex items-center justify-between relative">
+          
+          {/* LEFT: NAV LINKS (Desktop) / HAMBURGER (Mobile) */}
+          <div className="flex items-center gap-8 flex-1">
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+              className="text-obsidian-900 hover:text-gold transition-colors"
+            >
+              <Menu size={24} strokeWidth={1.5} />
+            </button>
+            
+            <div className="hidden lg:flex items-center gap-8">
+              <NavLink href="/collection" label="Shop All" />
+              <NavLink href="/collection?cat=watches" label="Watches" />
+              <NavLink href="/collection?cat=jewelry" label="Jewelry" />
+            </div>
           </div>
 
-          {/* III. AUTH & VAULT UTILITIES */}
-          <div className="hidden md:flex items-center gap-10">
-            <div className="flex items-center gap-8 border-r border-ivory-300 pr-10">
-              <Link href="/auth/login" className="text-[10px] font-black uppercase tracking-[0.3em] text-obsidian-300 hover:text-gold transition-colors">
-                Sign In
-              </Link>
-              <Link href="/auth/signup" className="px-6 py-3 bg-obsidian-900 text-gold text-[10px] font-black uppercase tracking-[0.4em] rounded-xl hover:bg-gold hover:text-white transition-all shadow-xl active:scale-95">
-                Join Vault
-              </Link>
-            </div>
+          {/* CENTER: LOGO (The Masthead) */}
+          <div className="absolute left-1/2 -translate-x-1/2 text-center">
+            <Link href="/" onClick={() => setIsMobileMenuOpen(false)}>
+              <h1 className="text-xl md:text-2xl font-medium tracking-tight text-obsidian-900 uppercase font-serif italic">
+                Lume <span className="text-gold not-italic">Vault</span>
+              </h1>
+            </Link>
+          </div>
 
-            {/* SELECTION TRIGGER */}
-            <button onClick={openSelectionDrawer} className="relative group p-2">
-              <ShoppingBag size={20} className="text-obsidian-900 group-hover:text-gold transition-colors" />
+          {/* RIGHT: UTILITIES */}
+          <div className="flex items-center justify-end gap-6 md:gap-8 flex-1">
+            <button className="hidden sm:block text-obsidian-900 hover:text-gold transition-colors">
+              <Search size={20} strokeWidth={1.5} />
+            </button>
+
+            <Link href="/dashboard" className="text-obsidian-900 hover:text-gold transition-colors">
+              <User size={20} strokeWidth={1.5} />
+            </Link>
+
+            <button onClick={openSelectionDrawer} className="relative group p-1">
+              <ShoppingBag size={20} strokeWidth={1.5} className="text-obsidian-900 group-hover:text-gold transition-colors" />
               <AnimatePresence>
                 {itemCount > 0 && (
                   <motion.div 
                     initial={{ scale: 0 }} 
                     animate={{ scale: 1 }} 
                     exit={{ scale: 0 }}
-                    className="absolute top-0 right-0 w-4 h-4 bg-gold rounded-full flex items-center justify-center border-2 border-white shadow-sm"
+                    className="absolute -top-1 -right-1 w-4 h-4 bg-gold rounded-full flex items-center justify-center border border-white"
                   >
-                    <span className="text-[8px] font-black text-white">{itemCount}</span>
+                    <span className="text-[8px] font-bold text-white">{itemCount}</span>
                   </motion.div>
                 )}
               </AnimatePresence>
             </button>
           </div>
-
-          {/* IV. MOBILE INTERFACE ACCESS */}
-          <div className="flex items-center gap-6 lg:hidden">
-            <button onClick={openSelectionDrawer} className="relative text-obsidian-900">
-              <ShoppingBag size={22} />
-              {itemCount > 0 && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-gold rounded-full border-2 border-white" />
-              )}
-            </button>
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-obsidian-900">
-              {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
-            </button>
-          </div>
         </div>
       </nav>
 
-      {/* V. MOBILE SOVEREIGN OVERLAY */}
+      {/* II. FULL-SCREEN MOBILE OVERLAY */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed inset-0 z-[95] bg-white/98 backdrop-blur-3xl flex flex-col pt-32 px-10 lg:hidden"
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            className="fixed inset-0 z-[120] bg-white flex flex-col pt-24 px-10"
           >
-            <div className="flex flex-col gap-10">
-              <MobileNavLink href="/collection" label="The Collection" onClick={() => setIsMobileMenuOpen(false)} />
-              <MobileNavLink href="/protocol/tracking" label="Logistics Registry" onClick={() => setIsMobileMenuOpen(false)} />
-              <MobileNavLink href="/concierge" label="Concierge Desk" onClick={() => setIsMobileMenuOpen(false)} />
+            <div className="flex justify-between items-center mb-12">
+               <h2 className="label-caps text-obsidian-400">Navigation</h2>
+               <button onClick={() => setIsMobileMenuOpen(false)}>
+                 <X size={32} strokeWidth={1} className="text-obsidian-900" />
+               </button>
             </div>
 
-            <div className="mt-16 flex flex-col gap-4">
-              <Link href="/auth/login" onClick={() => setIsMobileMenuOpen(false)} className="w-full py-6 border border-ivory-300 text-center text-[10px] font-black uppercase tracking-[0.4em] text-obsidian-900 rounded-[2rem]">
-                Sign In
-              </Link>
-              <Link href="/auth/signup" onClick={() => setIsMobileMenuOpen(false)} className="w-full py-6 bg-obsidian-900 text-gold text-center text-[10px] font-black uppercase tracking-[0.4em] rounded-[2rem] shadow-2xl">
-                Open Private Vault
-              </Link>
+            <div className="flex flex-col gap-8">
+              <MobileNavLink href="/collection" label="New Arrivals" onClick={() => setIsMobileMenuOpen(false)} />
+              <MobileNavLink href="/collection?cat=watches" label="Timepieces" onClick={() => setIsMobileMenuOpen(false)} />
+              <MobileNavLink href="/collection?cat=jewelry" label="Fine Jewelry" onClick={() => setIsMobileMenuOpen(false)} />
+              <MobileNavLink href="/concierge" label="Bespoke Service" onClick={() => setIsMobileMenuOpen(false)} />
+              <MobileNavLink href="/track" label="Track Order" onClick={() => setIsMobileMenuOpen(false)} />
             </div>
 
-            <div className="mt-auto pb-12 border-t border-ivory-100 pt-8 flex items-center justify-between">
-              <div className="flex items-center gap-3 text-gold">
-                <Fingerprint size={16} />
-                <span className="text-[9px] font-black uppercase tracking-[0.4em] italic leading-none">Protocol Secure</span>
-              </div>
-              <span className="text-[8px] font-mono text-obsidian-300">NODE_V.06</span>
+            <div className="mt-auto pb-12 space-y-4">
+              <Link href="/auth/login" onClick={() => setIsMobileMenuOpen(false)} className="block w-full py-5 border border-ivory-300 text-center text-xs font-bold uppercase tracking-widest text-obsidian-900 rounded-lg">
+                Log In
+              </Link>
+              <Link href="/auth/signup" onClick={() => setIsMobileMenuOpen(false)} className="block w-full py-5 bg-obsidian-900 text-white text-center text-xs font-bold uppercase tracking-widest rounded-lg shadow-lg">
+                Create Account
+              </Link>
             </div>
           </motion.div>
         )}
@@ -131,16 +135,16 @@ export default function Navbar() {
 
 function NavLink({ href, label }: { href: string; label: string }) {
   return (
-    <Link href={href} className="text-[10px] font-black uppercase tracking-[0.5em] text-obsidian-300 hover:text-gold transition-all relative group py-2 italic">
+    <Link href={href} className="text-[11px] font-bold uppercase tracking-[0.2em] text-obsidian-900 hover:text-gold transition-all relative group py-1">
       {label}
-      <span className="absolute -bottom-0.5 left-0 w-0 h-[1px] bg-gold transition-all duration-500 group-hover:w-full" />
+      <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-gold transition-all duration-300 group-hover:w-full" />
     </Link>
   )
 }
 
 function MobileNavLink({ href, label, onClick }: { href: string; label: string; onClick: () => void }) {
   return (
-    <Link href={href} onClick={onClick} className="text-4xl font-light italic text-obsidian-900 tracking-tighter hover:text-gold transition-colors block border-l-2 border-gold/20 pl-6 leading-none">
+    <Link href={href} onClick={onClick} className="text-5xl font-serif italic text-obsidian-900 tracking-tight hover:text-gold transition-colors block">
       {label}
     </Link>
   )

@@ -7,21 +7,19 @@ import "./globals.css";
 // COMPONENTS
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import CustomCursor from "@/components/ui/CustomCursor";
-import SovereignIngress from '@/components/ui/SovereignIngress';
 
-// REFINED TYPOGRAPHY: Heavier weights for better visibility
+// REFINED TYPOGRAPHY: Institutional weights for high visibility
 const serif = Cormorant_Garamond({
   subsets: ["latin"],
   variable: "--font-serif",
-  weight: ["400", "500", "600", "700"], // Removed 300, added 500/600 for clarity
+  weight: ["400", "500", "600", "700"],
   style: ['normal', 'italic'],
 });
 
 const sans = Montserrat({
   subsets: ["latin"],
   variable: "--font-sans",
-  weight: ["400", "500", "600", "700", "900"], // Bold 400-700 is now the baseline
+  weight: ["400", "500", "600", "700", "900"],
 });
 
 export default function RootLayout({
@@ -31,7 +29,7 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
 
-  // II. THE GATEKEEPER LOGIC
+  // GATEKEEPER LOGIC: Hide Global UI on Auth and Admin pages
   const currentPath = pathname || '';
   const isAuthPage = currentPath.startsWith('/auth');
   const isAdminPage = currentPath.startsWith('/admin');
@@ -49,28 +47,20 @@ export default function RootLayout({
           selection:bg-gold 
           selection:text-white
           overflow-x-hidden
-          ${hideGlobalUI ? 'cursor-default' : ''}
         `}
       >
-        {/* III. GLOBAL UI OVERLAYS */}
-        {!hideGlobalUI && (
-          <>
-            <CustomCursor />
-            <SovereignIngress />
-            <Navbar />
-          </>
-        )}
+        {/* GLOBAL NAVIGATION */}
+        {!hideGlobalUI && <Navbar />}
 
-        {/* IV. THE VAULT MAIN CONTAINER */}
-        {/* Added dynamic padding-top for mobile when Navbar is present */}
+        {/* MAIN DISPLAY AREA */}
         <main className={`
           relative 
-          ${hideGlobalUI ? 'z-50' : 'min-h-screen z-10 pt-20 md:pt-0'}
+          ${hideGlobalUI ? 'z-50' : 'min-h-screen z-10 pt-16 md:pt-20'}
         `}>
           {children}
         </main>
         
-        {/* V. FINALITY */}
+        {/* SITE FOOTER */}
         {!hideGlobalUI && <Footer />}
       </body>
     </html>

@@ -1,88 +1,120 @@
 'use client'
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, Diamond, Wallet, MessageSquare, 
-  Truck, Settings, Power, ShieldCheck, History 
+  Truck, Settings, Power, ShieldCheck, History,
+  UserCircle, Activity, Box
 } from 'lucide-react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const supabase = createClientComponentClient();
+  const [adminName, setAdminName] = useState('Administrator');
+  const [loading, setLoading] = useState(true);
 
-  // SOVEREIGN LOGOUT PROTOCOL
+  // SECURITY GATE: Only allow authorized admins
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        router.push('/auth/login?redirect=/admin/dashboard');
+        return;
+      }
+
+      // Check for Admin Metadata (Assuming you set 'role: admin' in Supabase)
+      const userRole = session.user.user_metadata?.role;
+      if (userRole !== 'admin') {
+        router.push('/dashboard'); // Send regular users back to client dashboard
+        return;
+      }
+
+      setAdminName(session.user.user_metadata?.full_name || 'System Admin');
+      setLoading(false);
+    };
+
+    checkAdmin();
+  }, [router, supabase]);
+
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (!error) {
-      window.location.href = '/auth/login';
-    } else {
-      console.error("Logout Protocol Failure:", error.message);
-    }
+    await supabase.auth.signOut();
+    window.location.href = '/auth/login';
   };
 
+  if (loading) return (
+    <div className="h-screen bg-obsidian-900 flex flex-col items-center justify-center gap-4">
+      <Activity className="text-gold animate-pulse" size={32} />
+      <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-gold/60 italic">Authorizing Admin Node...</p>
+    </div>
+  );
+
   return (
-    <div className="flex h-screen bg-ivory-100 text-obsidian-900 font-sans selection:bg-gold selection:text-white">
+    <div className="flex h-screen bg-ivory-50 text-obsidian-900 font-sans selection:bg-gold selection:text-white">
       
-      {/* SIDEBAR: Command Infrastructure */}
+      {/* SIDEBAR: Operational Hub */}
       <aside className="w-72 border-r border-ivory-300 flex flex-col p-8 bg-white shadow-sm relative z-20">
         
-        {/* BRANDING: Sovereign Logo Section */}
-        <div className="mb-12 px-2">
-          <h1 className="text-2xl font-light tracking-tighter text-obsidian-900 uppercase italic leading-tight">
-            LUME <span className="text-gold font-bold">VAULT.</span>
-          </h1>
-          <div className="flex items-center gap-2 mt-2">
-             <div className="h-[1px] w-4 bg-gold/50" />
-             <p className="text-[9px] text-obsidian-400 tracking-[0.4em] font-black uppercase italic">Admin Protocol</p>
+        {/* BRANDING: Lume Vault Command */}
+        <div className="mb-10 px-2">
+          <div className="flex items-center gap-3">
+             <div className="w-8 h-8 bg-gold flex items-center justify-center rounded-lg shadow-lg shadow-gold/20">
+                <ShieldCheck size={18} className="text-white" />
+             </div>
+             <h1 className="text-xl font-medium tracking-tight text-obsidian-900 font-serif italic uppercase">
+               Vault <span className="text-gold not-italic">Ops</span>
+             </h1>
           </div>
+          <p className="text-[8px] text-obsidian-400 tracking-[0.3em] font-bold uppercase mt-3 pl-1">Lume Control Center v4.0</p>
         </div>
 
-        {/* NAVIGATION: Sovereign Registry Links */}
-        <nav className="flex-1 space-y-1.5">
+        {/* ADMIN IDENTITY CARD */}
+        <div className="mb-10 p-4 bg-ivory-100 rounded-xl border border-ivory-200 flex items-center gap-4">
+           <div className="w-10 h-10 rounded-full bg-white border border-ivory-300 flex items-center justify-center text-obsidian-400">
+              <UserCircle size={24} strokeWidth={1.5} />
+           </div>
+           <div className="overflow-hidden">
+              <p className="text-[10px] font-bold text-obsidian-900 truncate">{adminName}</p>
+              <p className="text-[8px] font-bold text-gold uppercase tracking-widest">Master Admin</p>
+           </div>
+        </div>
+
+        {/* NAVIGATION: Core Management */}
+        <nav className="flex-1 space-y-1">
+          <p className="text-[8px] font-bold text-obsidian-300 uppercase tracking-widest pl-4 mb-2">Systems</p>
           <NavItem href="/admin/dashboard" icon={<LayoutDashboard size={18}/>} label="Overview" active={pathname === '/admin/dashboard'} />
-          <NavItem href="/admin/inventory" icon={<Diamond size={18}/>} label="Registry" active={pathname === '/admin/inventory'} />
-          <NavItem href="/admin/orders" icon={<History size={18}/>} label="Ledger" active={pathname === '/admin/orders'} />
-          <NavItem href="/admin/concierge" icon={<MessageSquare size={18}/>} label="Concierge" active={pathname === '/admin/concierge'} />
-          <NavItem href="/admin/tracking" icon={<Truck size={18}/>} label="Logistics" active={pathname === '/admin/tracking'} />
+          <NavItem href="/admin/inventory" icon={<Box size={18}/>} label="Inventory" active={pathname === '/admin/inventory'} />
+          <NavItem href="/admin/orders" icon={<History size={18}/>} label="Order Ledger" active={pathname === '/admin/orders'} />
+          <NavItem href="/admin/mempool" icon={<Activity size={18}/>} label="Payment Node" active={pathname === '/admin/mempool'} />
+          
+          <div className="pt-6">
+            <p className="text-[8px] font-bold text-obsidian-300 uppercase tracking-widest pl-4 mb-2">Client Relations</p>
+            <NavItem href="/admin/concierge" icon={<MessageSquare size={18}/>} label="Advisory Desk" active={pathname === '/admin/concierge'} />
+            <NavItem href="/admin/tracking" icon={<Truck size={18}/>} label="Global Logistics" active={pathname === '/admin/tracking'} />
+          </div>
         </nav>
 
-        {/* FOOTER: Security Handshake */}
-        <div className="mt-auto space-y-6 pt-8 border-t border-ivory-200">
-          <NavItem href="/admin/security" icon={<Settings size={18}/>} label="Settings" active={pathname === '/admin/security'} />
+        {/* FOOTER: Power Controls */}
+        <div className="mt-auto pt-6 border-t border-ivory-200">
+          <NavItem href="/admin/settings" icon={<Settings size={18}/>} label="System Config" active={pathname === '/admin/settings'} />
           
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-500 group hover:bg-red-50/50 border border-transparent hover:border-red-100"
+            className="w-full mt-2 flex items-center gap-4 px-5 py-3 rounded-lg transition-all text-obsidian-400 hover:text-red-500 hover:bg-red-50"
           >
-            <span className="text-obsidian-400 group-hover:text-red-600 transition-colors">
-              <Power size={18} />
-            </span>
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-obsidian-400 group-hover:text-red-600 italic text-left">
-              Terminate Session
-            </span>
+            <Power size={18} />
+            <span className="text-[10px] font-bold uppercase tracking-widest">Terminate Session</span>
           </button>
-
-          <div className="flex flex-col items-center gap-2 opacity-40">
-            <div className="flex items-center gap-2">
-              <ShieldCheck size={12} className="text-gold" />
-              <span className="text-[8px] font-black text-obsidian-400 uppercase tracking-[0.3em]">
-                Encrypted Session
-              </span>
-            </div>
-            <div className="h-[1px] w-8 bg-ivory-300" />
-          </div>
         </div>
       </aside>
 
-      {/* MAIN VIEWPORT: The Gallery Canvas */}
-      <main className="flex-1 overflow-y-auto bg-ivory-100 p-10 lg:p-14 relative">
-        {/* Decorative Background Element */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gold/5 blur-[120px] rounded-full pointer-events-none -mr-40 -mt-40" />
-        
-        <div className="max-w-7xl mx-auto relative z-10">
+      {/* MAIN VIEWPORT */}
+      <main className="flex-1 overflow-y-auto bg-ivory-50 p-8 lg:p-12">
+        <div className="max-w-7xl mx-auto">
           {children}
         </div>
       </main>
@@ -93,15 +125,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 function NavItem({ href, icon, label, active }: { href: string, icon: any, label: string, active: boolean }) {
   return (
     <Link href={href}>
-      <div className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-500 group ${
+      <div className={`flex items-center gap-4 px-5 py-3.5 rounded-lg transition-all group ${
         active 
-        ? 'bg-obsidian-900 text-gold shadow-xl shadow-obsidian-900/10' 
-        : 'text-obsidian-400 hover:text-obsidian-900 hover:bg-white border border-transparent hover:border-ivory-300'
+        ? 'bg-obsidian-900 text-white shadow-xl shadow-obsidian-900/10' 
+        : 'text-obsidian-400 hover:text-obsidian-900 hover:bg-white'
       }`}>
-        <span className={`${active ? 'text-gold' : 'text-obsidian-400 group-hover:text-gold'} transition-colors duration-500`}>
+        <span className={`${active ? 'text-gold' : 'text-obsidian-300 group-hover:text-gold'} transition-colors`}>
           {icon}
         </span>
-        <span className={`text-[11px] font-bold uppercase tracking-[0.2em] ${active ? 'italic' : ''}`}>{label}</span>
+        <span className="text-[10px] font-bold uppercase tracking-[0.15em]">{label}</span>
       </div>
     </Link>
   );

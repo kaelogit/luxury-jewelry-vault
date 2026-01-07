@@ -1,76 +1,77 @@
 'use client'
 
 import React from 'react'
-import { ArrowRight, ChevronLeft, MapPin, Shield, Globe, Navigation, Zap } from 'lucide-react'
+import { ArrowRight, ChevronLeft, MapPin, Shield, Globe, Navigation, Home } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 export default function ShippingStep({ onNext, onBack }: { onNext: () => void, onBack: () => void }) {
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-12 selection:bg-gold selection:text-white"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="space-y-10"
     >
-      {/* Header & Navigation */}
+      {/* HEADER & NAVIGATION */}
       <div className="space-y-6">
         <button 
           onClick={onBack} 
-          className="flex items-center gap-2 text-[10px] font-black text-gold hover:text-obsidian-900 uppercase tracking-[0.3em] transition-all duration-300 group"
+          className="flex items-center gap-2 text-[10px] font-bold text-obsidian-400 hover:text-gold uppercase tracking-widest transition-colors group"
         >
           <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> 
-          Back to Identity
+          Return to Bag
         </button>
         
-        <div className="space-y-4">
-          <div className="flex items-center gap-4">
-             <div className="w-1.5 h-1.5 rounded-full bg-gold shadow-[0_0_10px_gold]" />
-             <h2 className="text-4xl font-light text-obsidian-900 italic tracking-tighter uppercase">
-               Logistics <span className="text-gold font-bold">Coordination.</span>
-             </h2>
-          </div>
-          <p className="text-obsidian-400 text-sm font-light max-w-lg italic leading-relaxed border-l border-ivory-300 pl-8">
-            Provide the secure coordinates for sovereign delivery. All transit is fully insured, 
-            end-to-end encrypted, and escorted via private courier protocols.
+        <div className="space-y-2">
+          <h2 className="text-3xl md:text-5xl font-medium text-obsidian-900 font-serif italic tracking-tight">
+            Shipping <span className="text-gold not-italic">Details</span>
+          </h2>
+          <p className="text-obsidian-600 text-sm max-w-lg leading-relaxed">
+            Please provide your preferred delivery address. All Lume Vault shipments are fully insured and require a signature upon arrival.
           </p>
         </div>
       </div>
 
-      {/* Manifest Form Grid */}
-      <div className="space-y-8 bg-white border border-ivory-300 p-10 rounded-[3rem] shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gold/20" />
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+      {/* SHIPPING FORM */}
+      <div className="space-y-8 bg-white rounded-xl relative">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
-            <InputGroup label="Primary Delivery Address" placeholder="STREET, SUITE, UNIT" icon={<MapPin size={14} />} />
+            <InputGroup label="Street Address" placeholder="123 Luxury Lane, Suite 100" icon={<Home size={14} />} />
           </div>
-          <InputGroup label="City / Region" placeholder="e.g. ZURICH" icon={<Globe size={14} />} />
-          <InputGroup label="Postal Code" placeholder="8001" icon={<Navigation size={14} />} />
-          <InputGroup label="Country of Reception" placeholder="SWITZERLAND" icon={<Globe size={14} />} />
-          <InputGroup label="Special Security Instructions" placeholder="PRIVATE STRIP, GATE CODE, ESCORT REQ." icon={<Shield size={14} />} />
+          <InputGroup label="City" placeholder="New York" icon={<MapPin size={14} />} />
+          <InputGroup label="State / Province" placeholder="NY" icon={<MapPin size={14} />} />
+          <InputGroup label="Postal Code" placeholder="10001" icon={<Navigation size={14} />} />
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-obsidian-600 ml-1 flex items-center gap-2">
+              <Globe size={14} className="text-gold" /> Country
+            </label>
+            <select className="w-full bg-white border border-ivory-300 rounded-lg px-4 py-3 text-sm text-obsidian-900 focus:border-gold outline-none shadow-sm h-[52px]">
+              <option>United States</option>
+              <option>United Kingdom</option>
+              <option>Switzerland</option>
+              <option>United Arab Emirates</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Security Assurance Protocol */}
-      <div className="bg-ivory-50 p-8 rounded-[2rem] border border-ivory-300 flex gap-6 items-start shadow-inner">
-        <div className="p-3 bg-white rounded-full border border-gold/20 shadow-sm">
-          <Shield className="text-gold" size={20} />
-        </div>
+      {/* TRUST NOTICE */}
+      <div className="bg-ivory-50 p-6 rounded-xl border border-ivory-200 flex gap-4 items-start">
+        <Shield className="text-gold shrink-0" size={18} />
         <div className="space-y-1">
-          <h4 className="text-[10px] font-black text-obsidian-900 uppercase tracking-widest italic">Transit Integrity</h4>
-          <p className="text-[11px] text-obsidian-400 font-medium leading-relaxed uppercase tracking-tighter italic">
-            Final logistics arrangements are verified post-settlement via an encrypted concierge handshake. 
-            Your coordinates are never stored on permanent public ledgers.
+          <h4 className="text-[10px] font-bold text-obsidian-900 uppercase tracking-widest">Insured Delivery</h4>
+          <p className="text-[11px] text-obsidian-500 leading-relaxed">
+            Your collection is covered by a comprehensive transit insurance policy until the moment it is signed for. We utilize specialized couriers for all high-value deliveries.
           </p>
         </div>
       </div>
 
-      {/* Final Action */}
+      {/* ACTION */}
       <div className="flex justify-end pt-4">
         <button 
           onClick={onNext}
-          className="group bg-obsidian-900 text-gold px-14 py-6 rounded-2xl text-[11px] font-black uppercase tracking-[0.4em] flex items-center gap-4 hover:bg-gold hover:text-white transition-all duration-500 shadow-2xl active:scale-95"
+          className="w-full md:w-auto bg-obsidian-900 text-white px-12 py-5 rounded-lg text-xs font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-4 hover:bg-gold transition-all duration-300 shadow-lg"
         >
-          Proceed to Settlement <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform duration-500" />
+          Continue to Payment <ArrowRight size={18} />
         </button>
       </div>
     </motion.div>
@@ -79,15 +80,14 @@ export default function ShippingStep({ onNext, onBack }: { onNext: () => void, o
 
 function InputGroup({ label, placeholder, icon }: { label: string, placeholder: string, icon: any }) {
   return (
-    <div className="space-y-3 group">
-      <div className="flex items-center gap-3 text-obsidian-400 group-focus-within:text-gold transition-colors duration-500">
-        {icon}
-        <label className="text-[10px] font-black uppercase tracking-[0.3em] italic">{label}</label>
-      </div>
+    <div className="space-y-2 group">
+      <label className="text-[10px] font-bold uppercase tracking-widest text-obsidian-600 ml-1 flex items-center gap-2 transition-colors group-focus-within:text-gold">
+        {React.cloneElement(icon, { size: 14, className: "text-gold" })} {label}
+      </label>
       <input 
         type="text" 
         placeholder={placeholder}
-        className="w-full bg-ivory-50 border border-ivory-200 rounded-2xl px-6 py-5 text-obsidian-900 placeholder:text-obsidian-200 focus:outline-none focus:border-gold/50 focus:bg-white transition-all font-bold tracking-widest text-xs uppercase shadow-inner"
+        className="w-full bg-white border border-ivory-300 rounded-lg px-4 py-3 text-obsidian-900 placeholder:text-obsidian-300 focus:outline-none focus:border-gold transition-all text-sm h-[52px]"
       />
     </div>
   )

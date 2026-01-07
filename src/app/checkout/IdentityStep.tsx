@@ -1,15 +1,15 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { ArrowRight, Fingerprint, ShieldCheck, User, Globe, Mail, Phone, Loader2 } from 'lucide-react'
+import { ArrowRight, ShieldCheck, User, Globe, Phone, Loader2, ChevronLeft, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { motion } from 'framer-motion'
 
-export default function IdentityStep({ onNext }: { onNext: () => void }) {
+export default function IdentityStep({ onBack }: { onBack: () => void }) {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // 1. DATA INGRESS: Fetch existing profile for the 'Whale' client
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -26,63 +26,81 @@ export default function IdentityStep({ onNext }: { onNext: () => void }) {
     fetchProfile()
   }, [])
 
+  const handleFinalOrder = async () => {
+    setIsSubmitting(true)
+    // This will trigger the logic we wrote in PaymentStep or handle final redirect
+    // For now, we simulate the final "Place Order" click
+    setTimeout(() => {
+        // Logic to finalize the record in Supabase would go here
+        window.location.href = '/checkout/verification'
+    }, 1500)
+  }
+
   if (loading) return (
-    <div className="h-48 flex flex-col items-center justify-center gap-6">
+    <div className="h-48 flex flex-col items-center justify-center gap-4">
       <Loader2 className="text-gold animate-spin" size={32} />
-      <p className="text-[10px] text-obsidian-400 uppercase tracking-[0.4em] font-black italic">Verifying Identity...</p>
+      <p className="label-caps text-obsidian-400">Preparing Final Review</p>
     </div>
   )
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+    <div className="space-y-10">
       
-      {/* Opulent Header */}
+      {/* HEADER & NAVIGATION */}
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-           <div className="w-1.5 h-1.5 rounded-full bg-gold shadow-[0_0_10px_gold]" />
-           <h2 className="text-4xl font-light text-obsidian-900 italic tracking-tighter uppercase">
-             Identity <span className="text-gold font-bold">Protocol.</span>
-           </h2>
+        <button 
+          onClick={onBack} 
+          className="flex items-center gap-2 text-[10px] font-bold text-obsidian-400 hover:text-gold uppercase tracking-widest transition-colors group"
+        >
+          <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> 
+          Back to Payment
+        </button>
+        
+        <div className="space-y-2">
+          <h2 className="text-3xl md:text-5xl font-medium text-obsidian-900 font-serif italic tracking-tight">
+            Final <span className="text-gold not-italic">Review</span>
+          </h2>
+          <p className="text-obsidian-600 text-sm max-w-lg leading-relaxed">
+            Please confirm your account details and shipping information below. Once confirmed, your collection will be prepared for transit.
+          </p>
         </div>
-        <p className="text-obsidian-400 text-sm font-light max-w-lg italic leading-relaxed border-l border-ivory-300 pl-8">
-          To comply with sovereign trade regulations for high-value assets, 
-          we have retrieved your legal identifier. Please confirm these credentials for the current acquisition.
-        </p>
       </div>
 
-      <div className="space-y-10">
-        {/* REBUILT: Profile Confirmation Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-          <ProfileDisplay label="Legal Full Name" value={profile?.full_name} icon={<User size={14}/>} />
-          <ProfileDisplay label="Sovereign Origin" value={profile?.country} icon={<Globe size={14}/>} />
-          <ProfileDisplay label="Secure Channel" value={profile?.phone} icon={<Phone size={14}/>} />
-          <ProfileDisplay label="Audit Identifier" value={profile?.id.slice(0, 12)} icon={<Fingerprint size={14}/>} />
+      <div className="space-y-8">
+        {/* REVIEW GRID */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <ProfileDisplay label="Full Name" value={profile?.full_name} icon={<User size={14}/>} />
+          <ProfileDisplay label="Country" value={profile?.country} icon={<Globe size={14}/>} />
+          <ProfileDisplay label="Phone" value={profile?.phone} icon={<Phone size={14}/>} />
+          <ProfileDisplay label="Account Status" value="Verified Member" icon={<ShieldCheck size={14}/>} />
         </div>
 
-        {/* Security Assurance Card */}
-        <div className="bg-white p-10 rounded-[3rem] border border-ivory-300 shadow-xl space-y-6 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gold/5 blur-[50px] pointer-events-none" />
-          <div className="flex items-center gap-4 text-gold">
-            <ShieldCheck size={20} />
-            <h4 className="text-[11px] font-black uppercase tracking-[0.5em] italic">Encryption Standard</h4>
+        {/* SHIPMENT PREPARATION CARD */}
+        <div className="bg-ivory-50 p-8 rounded-xl border border-ivory-200 flex gap-4 items-start">
+          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-gold/20 shadow-sm shrink-0">
+             <Check className="text-gold" size={18} />
           </div>
-          <p className="text-[11px] text-obsidian-400 leading-relaxed uppercase font-bold tracking-widest italic">
-            This identity packet is AES-256 encrypted and stored within a non-indexed sovereign node. 
-            LUME VAULT maintains absolute client anonymity across all global trade registries.
-          </p>
+          <div className="space-y-1">
+            <h4 className="text-[10px] font-bold text-obsidian-900 uppercase tracking-widest">Order Ready for Dispatch</h4>
+            <p className="text-[11px] text-obsidian-500 leading-relaxed">
+              Upon clicking "Place Order," our curators will begin the authentication and packaging process. You will receive a tracking number via secure email within 24 hours.
+            </p>
+          </div>
         </div>
 
-        {/* Action Button */}
-        <div className="flex justify-between items-center pt-6">
-          <p className="text-[9px] text-obsidian-300 uppercase font-bold tracking-widest italic max-w-xs">
-            * By confirming, you authorize a one-time cryptographic handshake for this asset.
-          </p>
+        {/* FINAL ACTION */}
+        <div className="pt-4 space-y-6">
           <button 
-            onClick={onNext}
-            className="group bg-obsidian-900 text-gold px-14 py-6 rounded-2xl text-[11px] font-black uppercase tracking-[0.4em] flex items-center gap-4 hover:bg-gold hover:text-white transition-all duration-500 shadow-2xl active:scale-95"
+            onClick={handleFinalOrder}
+            disabled={isSubmitting}
+            className="w-full bg-obsidian-900 text-white h-[70px] rounded-lg text-sm font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-4 hover:bg-gold transition-all duration-300 shadow-lg disabled:opacity-50"
           >
-            Confirm Identity <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform duration-500" />
+            {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <>Place Order <ArrowRight size={18} /></>}
           </button>
+          
+          <p className="text-[10px] text-obsidian-300 text-center uppercase tracking-widest leading-relaxed">
+            Authorized signature required for all Lume Vault deliveries.
+          </p>
         </div>
       </div>
     </div>
@@ -91,13 +109,12 @@ export default function IdentityStep({ onNext }: { onNext: () => void }) {
 
 function ProfileDisplay({ label, value, icon }: { label: string, value: string, icon: any }) {
   return (
-    <div className="space-y-3 group">
-      <div className="flex items-center gap-3 text-obsidian-400 group-hover:text-gold transition-colors duration-500">
-        {icon}
-        <span className="text-[10px] font-black uppercase tracking-[0.4em] italic">{label}</span>
-      </div>
-      <div className="w-full bg-white border border-ivory-300 rounded-2xl px-8 py-5 shadow-sm">
-         <p className="text-obsidian-900 font-bold uppercase tracking-widest text-sm italic">
+    <div className="space-y-2">
+      <label className="text-[10px] font-bold uppercase tracking-widest text-obsidian-400 ml-1 flex items-center gap-2">
+        {React.cloneElement(icon, { size: 14, className: "text-gold" })} {label}
+      </label>
+      <div className="w-full bg-white border border-ivory-200 rounded-lg px-5 py-4 shadow-sm">
+         <p className="text-obsidian-900 font-bold uppercase tracking-widest text-xs">
            {value || 'Not Disclosed'}
          </p>
       </div>

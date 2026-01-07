@@ -1,13 +1,20 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+/**
+ * SELECTION ITEM INTERFACE
+ * Aligned with the Master SQL Registry (products table)
+ */
 export interface SelectionItem {
   id: string
-  title: string      // Fixed: matches product.title
+  name: string       // Standardized: matches product.name
+  title?: string     // Alias for legacy support
   price: number
-  image: string      // Fixed: maps to image_url
-  house: string      // Used for branding/display
-  asset_class: string // Fixed: used for protocol filtering
+  image: string      // Maps to image_url
+  category: string   // Standardized: matches product.category
+  asset_class?: string // Alias for legacy protocol filtering
+  slug: string       // Essential for routing from the vault back to product
+  house?: string
 }
 
 interface SelectionState {
@@ -28,7 +35,13 @@ export const useSelectionStore = create<SelectionState>()(
         const isAlreadyInVault = currentItems.some((i) => i.id === item.id)
         
         if (!isAlreadyInVault) {
-          set({ items: [...currentItems, item] })
+          // Normalize the item before adding: ensure title/name and category/asset_class are synced
+          const normalizedItem = {
+            ...item,
+            name: item.name || item.title || 'Unknown Asset',
+            category: item.category || item.asset_class || 'Bespoke'
+          }
+          set({ items: [...currentItems, normalizedItem] })
         }
       },
 
@@ -43,7 +56,7 @@ export const useSelectionStore = create<SelectionState>()(
       }
     }),
     {
-      name: 'lume-vault-selection-v4', // Updated version to force a clean cache
+      name: 'lume-vault-selection-v5', // Version bump to clear old incompatible local storage
     }
   )
 )

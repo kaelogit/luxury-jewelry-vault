@@ -1,40 +1,29 @@
 'use client'
 
-import React, { useRef } from 'react'
+import React, { useState } from 'react'
 import { 
-  ShieldCheck, Globe, Zap, Award, Weight, Box, 
-  Gem, ChevronRight, Fingerprint, 
-  Clock, ArrowRight, Share2, FileCheck, Star, 
-  ChevronLeft, Verified, ShoppingBag, Download
+  ChevronRight, ShoppingBag, Truck, RotateCcw
 } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useSelectionStore } from '@/store/useSelectionStore'
 import { useUIStore } from '@/store/useUIStore'
 import Link from 'next/link'
-import SovereignReviews from '@/components/product/SovereignReviews'
+import ProductCard from '@/components/ui/ProductCard'
 
-// I. INTERFACE DEFINITION: Syncing Registry Metadata
+// 1. TYPE DEFINITION: Exact match for Master SQL Registry
 interface Product {
   id: string
-  title: string
+  name: string
   price: number
-  image_url: string
-  asset_class: string
-  serial_number: string
+  image: string
+  secondary_image?: string
+  category: string
   description: string
   slug: string
   gold_purity?: string
-  gia_report_number?: string
-  specifications?: {
-    reference?: string
-    movement?: string
-    year?: string
-    carat?: string
-    clarity?: string
-    color?: string
-    weight?: string
-    type?: string
-  }
+  gia_report?: string
+  specifications?: any
+  serial_number?: string
 }
 
 interface ProductClientProps {
@@ -45,255 +34,176 @@ interface ProductClientProps {
 export default function ProductClient({ product, recommendations }: ProductClientProps) {
   const addItem = useSelectionStore((state) => state.addItem)
   const openDrawer = useUIStore((state) => state.openSelectionDrawer)
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const [activeTab, setActiveTab] = useState<'details' | 'shipping'>('details')
 
-  // II. ACQUISITION LOGIC: Handshake with Selection Store
-  const handleAcquisition = () => {
-    if (!product) return
+  // 2. HANDLER: Securely adding to the selection vault
+  const handleAddToCart = () => {
     addItem({
       id: product.id,
-      title: product.title, // Mapping title to name for store consistency
+      name: product.name,
       price: product.price,
-      image: product.image_url, // Mapping image_url to image for store consistency
-      house: product.asset_class,
-      asset_class: product.asset_class
+      image: product.image,
+      category: product.category,
+      slug: product.slug,
+      house: 'Lume Vault' // Branding synchronization
     })
     openDrawer()
   }
 
-  // III. LOGISTICS NAVIGATION: Slider Logic
-  const scroll = (direction: 'left' | 'right') => {
-    if (scrollRef.current) {
-      const { scrollLeft, clientWidth } = scrollRef.current
-      const scrollTo = direction === 'left' ? scrollLeft - clientWidth : scrollLeft + clientWidth
-      scrollRef.current.scrollTo({ left: scrollTo, behavior: 'smooth' })
-    }
-  }
-
-  const isHighValue = Number(product.price) >= 50000
-
   return (
-    <main className="min-h-screen bg-ivory-100 pt-32 md:pt-40 pb-32 px-6 md:px-12 selection:bg-gold selection:text-white overflow-x-hidden">
-      <div className="max-w-[1800px] mx-auto">
+    <main className="min-h-screen bg-ivory-100 pt-32 pb-20 px-6 md:px-12 selection:bg-gold selection:text-white">
+      <div className="max-w-screen-2xl mx-auto">
         
-        {/* BREADCRUMBS: The Sovereign Path */}
-        <nav className="flex items-center gap-6 mb-16 text-[10px] font-black uppercase tracking-[0.4em]">
-          <Link href="/collection" className="text-obsidian-300 hover:text-gold transition-colors italic">Registry</Link>
-          <ChevronRight size={10} className="text-ivory-300" />
-          <span className="text-obsidian-300 uppercase italic">{product.asset_class}</span>
-          <ChevronRight size={10} className="text-ivory-300" />
-          <span className="text-obsidian-900 border-b border-gold/40 pb-1">{product.title}</span>
+        {/* BREADCRUMBS: The Heritage Trail */}
+        <nav className="flex items-center gap-3 mb-16 text-[10px] font-black uppercase tracking-[0.3em] text-obsidian-300 italic">
+          <Link href="/collection" className="hover:text-gold transition-colors">Registry</Link>
+          <ChevronRight size={10} className="text-gold" />
+          <span className="text-obsidian-900">{product.name}</span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 xl:gap-40 items-start mb-48">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24">
           
-          {/* IV. VISUAL ENGINE: The Optical Chamber */}
-          <div className="lg:sticky lg:top-40">
+          {/* LEFT: VERTICAL ARTIFACT GALLERY */}
+          <div className="lg:col-span-7 space-y-10">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1.5, ease: [0.19, 1, 0.22, 1] }}
-              className="aspect-square bg-white border border-ivory-300 rounded-[3.5rem] md:rounded-[5rem] overflow-hidden relative group shadow-2xl"
+              className="aspect-[4/5] bg-white border border-ivory-300 rounded-2xl overflow-hidden relative shadow-sm"
             >
-              <img 
-                src={product.image_url} 
-                className="w-full h-full object-cover grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-[2.5s] group-hover:scale-105" 
-                alt={product.title} 
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-obsidian-900/10 via-transparent to-transparent opacity-60" />
-              
-              {/* Institutional Badging */}
-              <div className="absolute top-10 left-10 flex flex-col gap-4">
-                 <div className="px-6 py-3 bg-white/90 backdrop-blur-2xl border border-ivory-200 rounded-full flex items-center gap-3 shadow-xl">
-                    <ShieldCheck size={14} className="text-gold" />
-                    <span className="text-[10px] font-black text-obsidian-900 uppercase tracking-[0.3em]">Vault Secured</span>
-                 </div>
-                 {isHighValue && (
-                   <motion.div 
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                    className="px-6 py-3 bg-gold text-white rounded-full flex items-center gap-3 shadow-2xl shadow-gold/20"
-                   >
-                     <Star size={12} fill="white" />
-                     <span className="text-[10px] font-black uppercase tracking-[0.3em]">Reserve Asset</span>
-                   </motion.div>
-                 )}
-              </div>
+              <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
             </motion.div>
+            
+            {product.secondary_image && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="aspect-[4/5] bg-white border border-ivory-300 rounded-2xl overflow-hidden relative shadow-sm"
+              >
+                <img src={product.secondary_image} alt={`${product.name} alternate`} className="w-full h-full object-cover" />
+              </motion.div>
+            )}
           </div>
 
-          {/* V. MANIFEST: Technical specifications & Acquisition */}
-          <div className="space-y-24">
-            <header className="space-y-10">
-              <div className="flex flex-wrap items-center gap-8">
-                <div className="flex items-center gap-3">
-                  <Verified size={16} className="text-gold" />
-                  <span className="text-[11px] font-black text-gold uppercase tracking-[0.5em] italic leading-none">Institutional Authenticated</span>
-                </div>
-                <span className="text-[10px] font-mono text-obsidian-300 uppercase tracking-widest leading-none border-l border-ivory-300 pl-8 italic">SIG_{product.serial_number}</span>
+          {/* RIGHT: CUSTODIAL DATA & ACTIONS */}
+          <div className="lg:col-span-5 lg:sticky lg:top-32 h-fit space-y-12">
+            <header className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-gold rounded-full animate-pulse" />
+                <span className="label-caps text-gold">{product.gold_purity || product.category}</span>
               </div>
-
-              <div className="space-y-6">
-                <h1 className="text-7xl md:text-[10rem] font-light text-obsidian-900 tracking-tighter leading-[0.8] italic uppercase">
-                  {product.title.split(' ').map((word, i) => i === 1 ? <span key={i} className="text-obsidian-400">{word} </span> : word + ' ')}
-                </h1>
-                <p className="text-5xl md:text-7xl font-light text-obsidian-900 tracking-tighter italic">
-                  ${Number(product.price).toLocaleString()} <span className="text-xl md:text-2xl text-obsidian-200 non-italic font-black ml-4 uppercase">USD</span>
-                </p>
-              </div>
-
-              <p className="text-obsidian-600 text-xl md:text-2xl font-medium leading-relaxed max-w-2xl italic border-l-2 border-gold pl-10">
-                {product.description || "A physical masterwork secured within the Lume deep-storage network. Fully verified through GIA/LBMA protocols and prepared for armored transit."}
+              
+              <h1 className="text-5xl md:text-7xl font-medium text-obsidian-900 font-serif italic tracking-tight leading-[0.9]">
+                {product.name}
+              </h1>
+              
+              <p className="text-3xl md:text-4xl font-medium text-obsidian-900">
+                ${Number(product.price).toLocaleString()}
               </p>
             </header>
 
-            {/* THE TECHNICAL BLUEPRINT GRID */}
-            <section className="space-y-16">
-              <div className="flex items-center gap-6">
-                 <h4 className="text-[11px] font-black uppercase tracking-[0.5em] text-obsidian-300 italic">Technical Blueprint</h4>
-                 <div className="h-[1px] flex-1 bg-ivory-300" />
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-16 gap-x-12">
-                <TechnicalSpec label="Asset Classification" value={product.asset_class} icon={<Box size={16} />} />
+            <div className="space-y-8">
+              <p className="text-lg text-obsidian-600 leading-relaxed font-medium italic border-l-2 border-gold/20 pl-8">
+                {product.description || "A masterwork of physical autonomy, secured within our primary nodes."}
+              </p>
+
+              {/* ACTION COMMANDS */}
+              <div className="space-y-6 pt-4">
+                <button 
+                  onClick={handleAddToCart}
+                  className="w-full py-7 bg-obsidian-900 text-gold rounded-xl text-[11px] font-black uppercase tracking-[0.4em] flex items-center justify-center gap-4 hover:bg-gold hover:text-white transition-all duration-500 shadow-2xl active:scale-95"
+                >
+                  Acquire Asset <ShoppingBag size={18} />
+                </button>
                 
-                {product.asset_class === 'WATCH' && (
-                  <>
-                    <TechnicalSpec label="Reference Signature" value={product.specifications?.reference} icon={<Fingerprint size={16}/>} />
-                    <TechnicalSpec label="Movement Calibre" value={product.specifications?.movement} icon={<Clock size={16}/>} />
-                  </>
-                )}
-                {product.asset_class === 'DIAMOND' && (
-                  <>
-                    <TechnicalSpec label="Carat Mass" value={product.specifications?.carat} icon={<Gem size={16}/>} />
-                    <TechnicalSpec label="GIA Verification ID" value={product.gia_report_number} icon={<FileCheck size={16}/>} />
-                  </>
-                )}
-                {product.asset_class === 'GOLD' && (
-                  <>
-                    <TechnicalSpec label="Fineness Purity" value={product.gold_purity} icon={<Award size={16}/>} />
-                    <TechnicalSpec label="Net Physical Weight" value={product.specifications?.weight} icon={<Weight size={16}/>} />
-                  </>
-                )}
+                <div className="flex items-center justify-center gap-10">
+                  <div className="flex items-center gap-3 text-[9px] font-black text-obsidian-400 uppercase tracking-widest">
+                    <Truck size={14} className="text-gold" /> Insured Transit
+                  </div>
+                  <div className="flex items-center gap-3 text-[9px] font-black text-obsidian-400 uppercase tracking-widest">
+                    <RotateCcw size={14} className="text-gold" /> Final Settlement
+                  </div>
+                </div>
               </div>
-            </section>
+            </div>
 
-            {/* THE ACQUISITION TERMINAL */}
-            <div className="p-10 md:p-16 bg-white border border-ivory-300 rounded-[4rem] space-y-14 shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-80 h-80 bg-gold/5 blur-[120px] pointer-events-none" />
-              
-              <div className="flex flex-col md:flex-row items-center justify-between gap-10 border-b border-ivory-100 pb-14">
-                 <div className="text-center md:text-left space-y-3">
-                   <p className="text-[10px] font-black text-obsidian-300 uppercase tracking-[0.3em]">Logistical Status</p>
-                   <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-gold animate-pulse" />
-                      <p className="text-sm font-bold text-gold uppercase tracking-[0.2em] italic">Immediate Release Active</p>
-                   </div>
+            {/* INSTITUTIONAL DOSSIER */}
+            <div className="border-t border-ivory-300 pt-10 space-y-4">
+               <Accordion 
+                title="Specifications" 
+                isOpen={activeTab === 'details'} 
+                onClick={() => setActiveTab('details')}
+               >
+                 <div className="grid grid-cols-2 gap-y-5 text-[10px] font-black uppercase tracking-[0.2em] text-obsidian-600 italic">
+                   <p className="text-obsidian-300">Registry Class</p>
+                   <p>{product.category}</p>
+                   <p className="text-obsidian-300">GIA / Serial</p>
+                   <p>{product.gia_report || 'Authenticated'}</p>
+                   <p className="text-obsidian-300">Asset Ref</p>
+                   <p>#{product.id.slice(0, 10).toUpperCase()}</p>
                  </div>
-                 <div className="flex gap-4">
-                    <button className="p-5 bg-ivory-50 border border-ivory-200 rounded-2xl text-obsidian-400 hover:text-gold hover:border-gold transition-all shadow-inner"><Share2 size={20} /></button>
-                    <button className="p-5 bg-ivory-50 border border-ivory-200 rounded-2xl text-obsidian-400 hover:text-gold hover:border-gold transition-all shadow-inner"><Download size={20} /></button>
-                 </div>
-              </div>
+               </Accordion>
 
-              <button 
-                onClick={handleAcquisition} 
-                className="group relative w-full h-[92px] bg-obsidian-900 text-gold rounded-[2rem] text-[12px] font-black uppercase tracking-[0.6em] flex items-center justify-center gap-6 hover:bg-gold hover:text-white transition-all duration-700 shadow-2xl active:scale-[0.98] overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <span className="relative z-10">Initiate Acquisition</span> 
-                <ArrowRight size={22} className="relative z-10 group-hover:translate-x-3 transition-transform duration-500" />
-              </button>
+               <Accordion 
+                title="Vault Logistics" 
+                isOpen={activeTab === 'shipping'} 
+                onClick={() => setActiveTab('shipping')}
+               >
+                 <p className="text-[11px] text-obsidian-500 leading-relaxed font-medium uppercase tracking-tighter italic">
+                   Assets are released from deep storage within 24 hours of blockchain confirmation. Armored transit protocol is utilized for all global destinations.
+                 </p>
+               </Accordion>
             </div>
           </div>
         </div>
 
-        {/* VI. MEMBER LEDGER: Social Verification */}
-        <SovereignReviews productId={product.id} assetClass={product.asset_class} />
-
-        {/* VII. MARKET INTELLIGENCE: Complementary Assets */}
-        <section className="pb-32 mt-48">
-          <div className="flex flex-col md:flex-row items-center justify-between mb-20 px-4 gap-12">
-             <div className="space-y-6 text-center md:text-left">
-                <div className="flex items-center justify-center md:justify-start gap-4">
-                   <ShoppingBag className="text-gold" size={16} />
-                   <p className="text-[10px] font-black uppercase tracking-[0.5em] text-gold italic leading-none">Market Intelligence</p>
-                </div>
-                <h3 className="text-6xl md:text-8xl font-light text-obsidian-900 uppercase italic tracking-tighter leading-none">
-                  Members also <br/> <span className="text-obsidian-400">Acquired.</span>
-                </h3>
-             </div>
-             <div className="flex gap-6">
-                <button 
-                  onClick={() => scroll('left')}
-                  className="w-16 h-16 bg-white border border-ivory-300 rounded-full flex items-center justify-center text-obsidian-300 hover:text-gold hover:border-gold transition-all shadow-sm"
-                >
-                  <ChevronLeft size={24}/>
-                </button>
-                <button 
-                  onClick={() => scroll('right')}
-                  className="w-16 h-16 bg-white border border-ivory-300 rounded-full flex items-center justify-center text-obsidian-300 hover:text-gold hover:border-gold transition-all shadow-sm"
-                >
-                  <ChevronRight size={24}/>
-                </button>
-             </div>
-          </div>
-
-          <div className="relative -mx-6 md:-mx-12">
-            <div 
-              ref={scrollRef}
-              className="flex gap-12 overflow-x-auto px-6 md:px-12 pb-20 no-scrollbar scroll-smooth snap-x"
-            >
-              {recommendations.map((item) => (
-                <Link 
-                  key={item.id} 
-                  href={`/product/${item.slug}`} 
-                  className="w-[350px] md:w-[600px] shrink-0 group snap-start"
-                >
-                  <div className="aspect-[16/10] bg-white border border-ivory-300 rounded-[4rem] overflow-hidden shadow-sm group-hover:shadow-2xl group-hover:border-gold/30 transition-all duration-1000 relative">
-                    <img 
-                      src={item.image_url} 
-                      className="w-full h-full object-cover grayscale opacity-60 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000" 
-                      alt={item.title}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-obsidian-900/20 to-transparent" />
-                  </div>
-                  <div className="mt-10 flex justify-between items-start px-6">
-                    <div className="space-y-3">
-                       <p className="text-[10px] text-gold font-black uppercase tracking-[0.4em] italic leading-none">{item.asset_class}</p>
-                       <h5 className="text-3xl font-light text-obsidian-900 uppercase tracking-tight italic group-hover:text-gold transition-colors duration-700 leading-tight">
-                         {item.title}
-                       </h5>
-                    </div>
-                    <div className="text-right">
-                       <p className="text-[9px] font-black text-obsidian-200 uppercase tracking-widest italic mb-1 leading-none">Valuation</p>
-                       <p className="text-2xl font-light text-obsidian-400 italic tracking-tighter leading-none">${item.price.toLocaleString()}</p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+        {/* RELATED ASSETS: Complementary Acquisitions */}
+        <section className="mt-48 border-t border-ivory-300 pt-24">
+          <header className="mb-16">
+            <h2 className="text-4xl md:text-6xl font-medium font-serif italic text-obsidian-900">
+              Complementary <span className="text-gold not-italic">Acquisitions.</span>
+            </h2>
+          </header>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+            {recommendations && recommendations.length > 0 ? (
+              recommendations.slice(0, 4).map((item: Product) => (
+                <ProductCard key={item.id} product={item} /> // The red line will vanish here
+              ))
+            ) : (
+              <p className="col-span-full py-10 text-center opacity-30 italic text-sm">
+                Synchronizing complementary assets...
+              </p>
+            )}
           </div>
         </section>
-
       </div>
     </main>
   )
 }
 
-function TechnicalSpec({ label, value, icon }: { label: string, value: any, icon: any }) {
+function Accordion({ title, children, isOpen, onClick }: any) {
   return (
-    <div className="space-y-6 group">
-      <div className="flex items-center gap-4 text-obsidian-300 group-hover:text-gold transition-colors duration-700">
-        <div className="p-3 bg-white border border-ivory-300 rounded-xl shadow-sm group-hover:border-gold group-hover:bg-gold group-hover:text-white transition-all">
-          {icon}
-        </div>
-        <span className="text-[11px] font-black uppercase tracking-[0.4em] italic">{label}</span>
-      </div>
-      <p className="text-3xl md:text-4xl font-light text-obsidian-900 italic tracking-tight uppercase pl-16 border-l border-gold/20 group-hover:border-gold transition-all duration-1000 leading-none">
-        {value || 'Verification Pending'}
-      </p>
+    <div className="border-b border-ivory-100 pb-5">
+      <button 
+        onClick={onClick}
+        className="w-full flex justify-between items-center py-2 text-[11px] font-black uppercase tracking-[0.3em] text-obsidian-900 italic"
+      >
+        {title}
+        <div className={`w-1 h-1 bg-gold rounded-full transition-all duration-500 ${isOpen ? 'scale-[4] opacity-100' : 'opacity-30'}`} />
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden pt-6"
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

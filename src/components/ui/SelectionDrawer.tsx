@@ -1,9 +1,10 @@
 'use client'
 
 import React from 'react'
-import { X, ShoppingBag, ShieldCheck, ArrowRight, Trash2, Fingerprint } from 'lucide-react'
+import { X, ArrowRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSelectionStore } from '@/store/useSelectionStore'
+import { useRouter } from 'next/navigation'
 
 interface Props {
   isOpen: boolean
@@ -13,124 +14,121 @@ interface Props {
 export default function SelectionDrawer({ isOpen, onClose }: Props) {
   const { items, removeItem, getTotalPrice } = useSelectionStore()
   const totalPrice = getTotalPrice()
-
-  // Responsive Drawer Variants
-  const drawerVariants = {
-    initial: { x: '100%' },
-    animate: { x: 0 },
-    exit: { x: '100%' }
-  }
+  const router = useRouter()
 
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* I. BLUR HANDSHAKE: Dimming the background */}
+          {/* I. THE OVERLAY: Pure & Minimal */}
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-obsidian-900/40 backdrop-blur-md z-[200]"
+            className="fixed inset-0 bg-obsidian-900/20 backdrop-blur-sm z-[200]"
           />
 
-          {/* II. THE VAULT MANIFEST: Slide-out UI */}
+          {/* II. THE SELECTION: Auvere Editorial Style */}
           <motion.div
-            variants={drawerVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 h-full w-full md:w-[550px] bg-white z-[201] shadow-2xl border-l border-ivory-300 flex flex-col"
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'tween', duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed right-0 top-0 h-screen w-full md:w-[500px] bg-white z-[201] flex flex-col shadow-[-10px_0_50px_rgba(0,0,0,0.05)]"
           >
-            <div className="flex flex-col h-full p-10 md:p-14">
-              
-              {/* Header: Registry Declaration */}
-              <header className="flex justify-between items-start mb-14">
-                <div className="space-y-2">
-                   <div className="flex items-center gap-3">
-                      <Fingerprint size={14} className="text-gold" />
-                      <h2 className="text-[11px] font-black uppercase tracking-[0.5em] text-gold italic leading-none">Pending Vault</h2>
-                   </div>
-                  <p className="text-[10px] text-obsidian-300 uppercase tracking-widest font-bold">Sovereign Acquisition Registry</p>
-                </div>
-                <button 
-                  onClick={onClose} 
-                  className="w-12 h-12 bg-ivory-50 border border-ivory-300 rounded-full flex items-center justify-center text-obsidian-300 hover:text-gold hover:border-gold transition-all"
-                >
-                  <X size={20} />
-                </button>
-              </header>
+            {/* 1. NAVIGATION BAR */}
+            <div className="flex justify-between items-center px-8 md:px-12 py-10 border-b border-ivory-200">
+              <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-obsidian-900">
+                Your Selection ({items.length})
+              </span>
+              <button 
+                onClick={onClose}
+                className="group flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-obsidian-400 hover:text-obsidian-900 transition-colors"
+              >
+                Close <X size={14} strokeWidth={1.5} className="group-hover:rotate-90 transition-transform duration-300" />
+              </button>
+            </div>
 
-              {/* Asset Feed: The Items List */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar -mx-4 px-4 space-y-8">
-                {items.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center space-y-8 opacity-40">
-                    <div className="w-24 h-24 bg-ivory-50 rounded-[2.5rem] flex items-center justify-center border border-ivory-300">
-                      <ShoppingBag size={28} className="text-obsidian-200" />
-                    </div>
-                    <p className="text-[11px] text-obsidian-300 uppercase tracking-[0.4em] font-black italic">The registry is empty.</p>
-                  </div>
-                ) : (
-                  items.map((item) => (
+            {/* 2. THE EDIT: Scrollable Content */}
+            <div className="flex-1 overflow-y-auto px-8 md:px-12 py-12 custom-scrollbar">
+              {items.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center space-y-4">
+                  <p className="font-serif italic text-2xl text-obsidian-300">Your bag is empty.</p>
+                  <button onClick={onClose} className="text-[10px] font-bold uppercase tracking-widest text-gold border-b border-gold/30 pb-1">
+                    Continue Browsing
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-16">
+                  {items.map((item) => (
                     <motion.div 
                       layout
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
                       key={item.id}
-                      className="flex gap-8 items-center p-6 bg-ivory-50 border border-ivory-200 rounded-[2rem] group hover:border-gold/30 transition-all duration-500"
+                      className="flex gap-8 group"
                     >
-                      <div className="w-24 h-24 rounded-2xl overflow-hidden bg-white border border-ivory-300 shrink-0 shadow-sm">
-                        <img src={item.image} className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-700" alt={item.title} />
-                      </div>
-                      
-                      <div className="flex-1 min-w-0 space-y-2">
-                        <p className="text-[9px] font-black text-gold uppercase tracking-widest italic">{item.house || 'Sovereign Asset'}</p>
-                        <h4 className="text-sm font-bold text-obsidian-900 uppercase tracking-tight italic leading-tight truncate">{item.title}</h4>
-                        <p className="text-lg font-light text-obsidian-400 italic tracking-tighter">${item.price.toLocaleString()}</p>
+                      {/* ASSET IMAGE */}
+                      <div className="w-24 md:w-32 aspect-[4/5] bg-ivory-100 relative overflow-hidden flex-shrink-0">
+                        <img 
+                          src={item.image} 
+                          className="w-full h-full object-cover grayscale-[10%] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000" 
+                        />
                       </div>
 
-                      <button 
-                        onClick={() => removeItem(item.id)}
-                        className="p-4 text-obsidian-200 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      {/* ASSET DATA */}
+                      <div className="flex-1 flex flex-col justify-between py-1">
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-start">
+                            <h4 className="text-xl font-medium font-serif italic text-obsidian-900 tracking-tight leading-tight">
+                              {item.name}
+                            </h4>
+                          </div>
+                          <p className="text-[10px] text-obsidian-400 uppercase tracking-widest font-medium">
+                            {item.category}
+                          </p>
+                        </div>
+
+                        <div className="flex items-end justify-between">
+                          <p className="text-sm font-medium text-obsidian-900">
+                            ${Number(item.price).toLocaleString()}
+                          </p>
+                          <button 
+                            onClick={() => removeItem(item.id)}
+                            className="text-[9px] font-bold uppercase tracking-widest text-obsidian-300 hover:text-red-500 border-b border-transparent hover:border-red-500 pb-1 transition-all"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
                     </motion.div>
-                  ))
-                )}
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 3. FOOTER: Checkout Logic */}
+            <footer className="p-8 md:p-12 border-t border-ivory-200 bg-white">
+              <div className="flex justify-between items-center mb-10">
+                <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-obsidian-300">Subtotal</p>
+                <p className="text-3xl font-medium font-serif italic text-obsidian-900">
+                  ${totalPrice.toLocaleString()}
+                </p>
               </div>
 
-              {/* Settlement Footer */}
-              <footer className="pt-12 border-t border-ivory-200 space-y-10">
-                <div className="flex justify-between items-end">
-                  <div className="space-y-2">
-                    <span className="text-[10px] text-obsidian-200 uppercase font-black tracking-widest italic leading-none">Total Valuation</span>
-                    <div className="flex items-center gap-2">
-                       <div className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
-                       <p className="text-[9px] text-gold uppercase tracking-widest font-bold">Real-time Market Sync Active</p>
-                    </div>
-                  </div>
-                  <span className="text-5xl font-light text-obsidian-900 italic tracking-tighter leading-none">${totalPrice.toLocaleString()}</span>
-                </div>
-                
-                <div className="bg-ivory-50 border border-ivory-300 p-8 rounded-[2.5rem] flex gap-6 items-start">
-                  <ShieldCheck size={20} className="text-gold shrink-0 mt-1" />
-                  <p className="text-[10px] text-obsidian-400 uppercase font-bold tracking-[0.2em] leading-relaxed italic">
-                    Acquisition handshakes are secured via the LUME protocol. <br/> 
-                    <span className="text-obsidian-900 font-black tracking-widest">BTC / ETH / SOL</span> Settlement enabled.
-                  </p>
-                </div>
-
+              <div className="space-y-6">
                 <button 
-                  onClick={() => window.location.href = '/checkout'}
+                  onClick={() => { onClose(); router.push('/checkout'); }}
                   disabled={items.length === 0}
-                  className="group relative w-full h-[88px] bg-obsidian-900 text-gold rounded-[2rem] text-[11px] font-black uppercase tracking-[0.5em] flex items-center justify-center gap-6 hover:bg-gold hover:text-white transition-all duration-700 shadow-2xl active:scale-95 disabled:opacity-20"
+                  className="w-full py-6 bg-obsidian-900 text-white text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-gold transition-all duration-500 disabled:opacity-20 flex items-center justify-center gap-4"
                 >
-                  Initiate Secure Acquisition <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform duration-500" />
+                  Proceed to Checkout <ArrowRight size={14} />
                 </button>
-              </footer>
-            </div>
+                
+                <p className="text-center text-[9px] text-obsidian-400 font-medium uppercase tracking-widest leading-relaxed">
+                  Complimentary insured shipping <br/> applied to all orders.
+                </p>
+              </div>
+            </footer>
           </motion.div>
         </>
       )}

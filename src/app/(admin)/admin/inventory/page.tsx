@@ -4,10 +4,10 @@ import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { 
   Plus, Edit, Trash2, X, Upload, Loader2, 
-  Check, ExternalLink, Box, Gem, Clock, ShieldCheck 
+  Check, Box, Gem, Clock, ShieldCheck, Search, Filter
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { createLuxuryAsset } from './actions' // Using the server action we just audited
+import { createLuxuryAsset } from './actions'
 
 export default function AdminInventory() {
   const [products, setProducts] = useState<any[]>([])
@@ -15,24 +15,31 @@ export default function AdminInventory() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // --- 1. SOVEREIGN FORM STATE ---
+  // --- 1. DYNAMIC CATEGORY MAPPING ---
+  const CATEGORIES = ['Watches', 'Solid Gold', 'Diamonds', 'Bespoke']
+  const SUB_CATEGORIES: Record<string, string[]> = {
+    'Watches': ['Heritage', 'Contemporary', 'Limited Edition'],
+    'Solid Gold': ['Chains', 'Rings', 'Investment Bars'],
+    'Diamonds': ['GIA Certified', 'Loose Stones'],
+    'Bespoke': ['Custom Commissions']
+  }
+
   const [formData, setFormData] = useState({
-    title: '',
+    name: '',
     price: '',
-    asset_class: 'GOLD',
+    category: 'Watches',
+    sub_category: 'Heritage',
+    type: 'Automatic',
     serial_number: '',
     description: '',
-    image_url: '',
     gold_purity: '',
-    gia_report_number: '',
-    status: 'AVAILABLE'
+    carat_weight: '',
+    gia_report: ''
   })
   
   const [specifications, setSpecifications] = useState<any>({})
 
-  useEffect(() => {
-    fetchProducts()
-  }, [])
+  useEffect(() => { fetchProducts() }, [])
 
   async function fetchProducts() {
     setLoading(true)
@@ -45,7 +52,6 @@ export default function AdminInventory() {
     setSpecifications((prev: any) => ({ ...prev, [key]: value }))
   }
 
-  // --- 2. SUBMISSION PROTOCOL ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -54,14 +60,13 @@ export default function AdminInventory() {
     Object.entries(formData).forEach(([key, value]) => submissionData.append(key, value))
     submissionData.append('specifications', JSON.stringify(specifications))
 
-    // Handle File inputs (if selected via standard file inputs)
     const imageInput = document.getElementById('image-upload') as HTMLInputElement
     if (imageInput?.files?.[0]) submissionData.append('image', imageInput.files[0])
 
     const result = await createLuxuryAsset(submissionData)
 
     if (result.error) {
-      alert(`Ingression Error: ${result.error}`)
+      alert(`Sync Error: ${result.error}`)
     } else {
       setIsModalOpen(false)
       fetchProducts()
@@ -72,83 +77,83 @@ export default function AdminInventory() {
 
   const resetForm = () => {
     setFormData({
-      title: '', price: '', asset_class: 'GOLD', serial_number: '',
-      description: '', image_url: '', gold_purity: '', gia_report_number: '', status: 'AVAILABLE'
+      name: '', price: '', category: 'Watches', sub_category: 'Heritage', type: 'Automatic',
+      serial_number: '', description: '', gold_purity: '', carat_weight: '', gia_report: ''
     })
     setSpecifications({})
   }
 
   return (
-    <main className="min-h-screen bg-ivory-100 p-8 md:p-12 space-y-12 selection:bg-gold selection:text-white">
+    <main className="space-y-10 pb-20">
       
-      {/* HEADER: Opulent Dashboard Ingress */}
+      {/* HEADER */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-             <div className="w-2 h-2 rounded-full bg-gold shadow-[0_0_10px_gold]" />
-             <p className="text-[10px] font-black uppercase tracking-[0.5em] text-gold italic">Asset Custody</p>
-          </div>
-          <h1 className="text-5xl md:text-7xl font-light text-obsidian-900 italic tracking-tighter">Inventory <span className="text-obsidian-400">Registry.</span></h1>
+        <div className="space-y-2">
+          <p className="label-caps text-gold">Vault Registry</p>
+          <h1 className="text-4xl md:text-6xl font-medium text-obsidian-900 font-serif italic tracking-tight">
+            Inventory <span className="text-obsidian-400 not-italic">Control.</span>
+          </h1>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="bg-obsidian-900 text-gold px-10 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 hover:bg-gold hover:text-white transition-all shadow-xl active:scale-95"
+          className="bg-obsidian-900 text-white px-8 py-4 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-3 hover:bg-gold transition-all shadow-lg"
         >
-          <Plus size={16} /> Register Asset
+          <Plus size={18} /> Add New Asset
         </button>
       </header>
 
-      {/* METRICS PROTOCOL */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <StatBox label="Vault Valuation" value={`$${products.reduce((acc, p) => acc + Number(p.price), 0).toLocaleString()}`} />
-        <StatBox label="Managed Assets" value={products.length.toString()} />
-        <StatBox label="Registry Status" value="SYNCED" color="text-gold" />
+      {/* SEARCH & FILTER BAR */}
+      <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-xl border border-ivory-300 shadow-sm">
+        <div className="flex-1 relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-obsidian-300" size={18} />
+            <input type="text" placeholder="Search by name or serial..." className="w-full pl-12 pr-4 py-3 bg-ivory-50 border border-ivory-200 rounded-lg outline-none focus:border-gold text-sm" />
+        </div>
+        <div className="flex gap-4">
+            <select className="px-6 py-3 bg-white border border-ivory-300 rounded-lg text-xs font-bold uppercase tracking-widest text-obsidian-600 outline-none">
+                <option>All Categories</option>
+                <option>Watches</option>
+                <option>Solid Gold</option>
+            </select>
+        </div>
       </div>
 
-      {/* REGISTRY TABLE: Inverted High-Contrast */}
-      <div className="bg-white border border-ivory-300 rounded-[3rem] overflow-hidden shadow-sm">
+      {/* REGISTRY TABLE */}
+      <div className="bg-white border border-ivory-300 rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left">
             <thead>
               <tr className="border-b border-ivory-300 bg-ivory-50">
-                <th className="p-8 text-[11px] font-black uppercase tracking-widest text-obsidian-400 italic">Identity</th>
-                <th className="p-8 text-[11px] font-black uppercase tracking-widest text-obsidian-400 italic">Class</th>
-                <th className="p-8 text-[11px] font-black uppercase tracking-widest text-obsidian-400 italic">Valuation</th>
-                <th className="p-8 text-[11px] font-black uppercase tracking-widest text-obsidian-400 italic">Status</th>
-                <th className="p-8 text-[11px] font-black uppercase tracking-widest text-obsidian-400 italic">Actions</th>
+                <th className="p-6 label-caps text-obsidian-400">Identity</th>
+                <th className="p-6 label-caps text-obsidian-400">Category</th>
+                <th className="p-6 label-caps text-obsidian-400">Valuation</th>
+                <th className="p-6 label-caps text-obsidian-400">Stock</th>
+                <th className="p-6 label-caps text-obsidian-400">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-ivory-200">
+            <tbody className="divide-y divide-ivory-100">
               {products.map((p) => (
-                <tr key={p.id} className="hover:bg-ivory-50 transition-colors group">
-                  <td className="p-8">
-                    <div className="flex items-center gap-6">
-                      <div className="w-16 h-16 bg-ivory-100 rounded-2xl border border-ivory-300 overflow-hidden shadow-inner">
-                        <img src={p.image_url} className="w-full h-full object-cover grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" alt="" />
-                      </div>
+                <tr key={p.id} className="hover:bg-ivory-50/50 transition-colors">
+                  <td className="p-6">
+                    <div className="flex items-center gap-4">
+                      <img src={p.image} className="w-12 h-14 object-cover rounded border border-ivory-200" alt="" />
                       <div>
-                        <p className="text-sm font-black text-obsidian-900 uppercase tracking-wider italic">{p.title}</p>
-                        <p className="text-[10px] text-obsidian-400 font-mono font-bold uppercase tracking-tighter mt-1">{p.serial_number}</p>
+                        <p className="text-sm font-bold text-obsidian-900 uppercase">{p.name}</p>
+                        <p className="text-[10px] text-obsidian-400 font-mono">SN: {p.serial_number}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="p-8">
+                  <td className="p-6">
+                    <span className="text-[10px] font-bold text-gold uppercase tracking-widest bg-gold/5 px-2 py-1 rounded-md">{p.category}</span>
+                  </td>
+                  <td className="p-6 text-sm font-bold text-obsidian-900">${Number(p.price).toLocaleString()}</td>
+                  <td className="p-6">
                     <div className="flex items-center gap-2">
-                       {p.asset_class === 'GOLD' && <Box size={14} className="text-gold" />}
-                       {p.asset_class === 'DIAMOND' && <Gem size={14} className="text-obsidian-900" />}
-                       {p.asset_class === 'WATCH' && <Clock size={14} className="text-gold" />}
-                       <span className="text-[10px] font-black text-obsidian-600 uppercase tracking-widest italic">{p.asset_class}</span>
+                      <div className={`w-1.5 h-1.5 rounded-full ${p.is_visible ? 'bg-green-500' : 'bg-red-400'}`} />
+                      <span className="text-[10px] font-bold text-obsidian-400 uppercase">{p.is_visible ? 'Active' : 'Hidden'}</span>
                     </div>
                   </td>
-                  <td className="p-8 text-lg font-mono text-obsidian-900 italic font-bold tracking-tighter">${Number(p.price).toLocaleString()}</td>
-                  <td className="p-8">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${p.status === 'AVAILABLE' ? 'bg-gold shadow-[0_0_8px_gold]' : 'bg-obsidian-200'}`} />
-                      <span className="text-[10px] font-black text-obsidian-400 uppercase tracking-widest">{p.status}</span>
-                    </div>
-                  </td>
-                  <td className="p-8">
-                    <div className="flex items-center gap-6 text-obsidian-300">
+                  <td className="p-6">
+                    <div className="flex gap-4 text-obsidian-300">
                       <button className="hover:text-gold transition-colors"><Edit size={18} /></button>
                       <button className="hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
                     </div>
@@ -160,93 +165,77 @@ export default function AdminInventory() {
         </div>
       </div>
 
-      {/* ASSET INGESTION MODAL */}
+      {/* ASSET MODAL */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-obsidian-900/80 backdrop-blur-md" />
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-obsidian-900/60 backdrop-blur-sm">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }} 
-              animate={{ opacity: 1, scale: 1, y: 0 }} 
-              className="relative w-full max-w-4xl bg-white border border-ivory-300 rounded-[4rem] p-12 md:p-16 overflow-y-auto max-h-[90vh] custom-scrollbar shadow-2xl"
+              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-5xl bg-white rounded-2xl p-10 md:p-14 overflow-y-auto max-h-[90vh]"
             >
-              <div className="flex justify-between items-start mb-16 border-b border-ivory-200 pb-10">
-                <div className="space-y-3">
-                  <h2 className="text-4xl font-light text-obsidian-900 italic tracking-tighter">Asset <span className="text-gold">Ingestion.</span></h2>
-                  <p className="text-[10px] text-obsidian-400 uppercase tracking-[0.4em] font-black italic underline decoration-gold/30 underline-offset-8 uppercase">Authenticate Asset for Sovereign Vault</p>
-                </div>
-                <button onClick={() => setIsModalOpen(false)} className="w-12 h-12 flex items-center justify-center bg-ivory-100 rounded-full text-obsidian-400 hover:text-obsidian-900 transition-colors"><X size={24}/></button>
+              <div className="flex justify-between items-center mb-10 border-b border-ivory-100 pb-6">
+                <h2 className="text-3xl font-medium text-obsidian-900 font-serif italic">New <span className="text-gold">Asset.</span></h2>
+                <button onClick={() => setIsModalOpen(false)} className="text-obsidian-300 hover:text-obsidian-900 transition-colors"><X size={24}/></button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-16">
-                {/* 4K Visual Upload */}
-                <div className="group relative h-64 bg-ivory-50 rounded-[3rem] border-2 border-dashed border-ivory-300 flex flex-col items-center justify-center overflow-hidden hover:border-gold/50 transition-all shadow-inner">
-                  <div className="text-center space-y-4">
-                    <Upload className="mx-auto text-gold opacity-50" size={32} />
-                    <p className="text-[10px] text-obsidian-400 font-black uppercase tracking-widest italic">Upload Master Asset Media (4K / 3D)</p>
-                  </div>
-                  <input id="image-upload" type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*,video/*" />
+              <form onSubmit={handleSubmit} className="space-y-10">
+                {/* Media Section */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="md:col-span-3 h-48 bg-ivory-50 rounded-xl border-2 border-dashed border-ivory-200 flex flex-col items-center justify-center cursor-pointer hover:border-gold transition-colors">
+                        <Upload className="text-gold mb-2" size={24} />
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-obsidian-400">Primary Product Image</p>
+                        <input id="image-upload" type="file" className="absolute opacity-0 cursor-pointer" />
+                    </div>
                 </div>
 
-                {/* Core Registry Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                  <Input label="Asset Title" value={formData.title} onChange={(v: string) => setFormData({...formData, title: v})} />
-                  <Input label="Static Valuation (USD)" value={formData.price} onChange={(v: string) => setFormData({...formData, price: v})} />
-                  
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black text-obsidian-400 uppercase tracking-widest italic ml-4">House Selection</label>
-                    <select 
-                      value={formData.asset_class} 
-                      onChange={(e) => setFormData({...formData, asset_class: e.target.value})}
-                      className="w-full bg-ivory-100 border border-ivory-300 rounded-[2rem] px-8 py-5 text-obsidian-900 uppercase text-[11px] font-bold tracking-[0.2em] outline-none focus:border-gold/50 transition-all appearance-none"
-                    >
-                      <option value="GOLD">House of Gold</option>
-                      <option value="DIAMOND">House of Diamond</option>
-                      <option value="WATCH">The Horology Suite</option>
-                      <option value="BESPOKE">Bespoke Jewelry</option>
-                    </select>
-                  </div>
-                  
-                  <Input label="Registry Serial (LV-XXXX)" value={formData.serial_number} onChange={(v: string) => setFormData({...formData, serial_number: v})} />
+                {/* Classification */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <Select label="Category" value={formData.category} options={CATEGORIES} onChange={(v) => setFormData({...formData, category: v, sub_category: SUB_CATEGORIES[v][0]})} />
+                  <Select label="Sub-Category" value={formData.sub_category} options={SUB_CATEGORIES[formData.category]} onChange={(v) => setFormData({...formData, sub_category: v})} />
+                  <Input label="Serial Number" value={formData.serial_number} onChange={(v) => setFormData({...formData, serial_number: v})} />
                 </div>
 
-                {/* Class-Specific Specifications */}
-                <div className="space-y-8 pt-8 border-t border-ivory-200">
-                  <div className="flex items-center gap-4">
-                     <ShieldCheck size={18} className="text-gold" />
-                     <h4 className="text-[11px] font-black text-obsidian-900 uppercase tracking-[0.4em] italic">Technical Specifications</h4>
+                {/* Commercials */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <Input label="Asset Name" value={formData.name} onChange={(v) => setFormData({...formData, name: v})} />
+                  <Input label="Price (USD)" value={formData.price} onChange={(v) => setFormData({...formData, price: v})} />
+                </div>
+
+                {/* Technical specs based on Category */}
+                <div className="p-8 bg-ivory-50 rounded-xl space-y-8">
+                  <div className="flex items-center gap-3">
+                    <ShieldCheck className="text-gold" size={18} />
+                    <p className="label-caps !text-obsidian-900">Technical Attributes</p>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10 bg-ivory-50/50 p-10 rounded-[3rem] border border-ivory-200">
-                    {formData.asset_class === 'GOLD' && (
-                      <>
-                        <Input label="Gold Purity (e.g., 24K)" value={formData.gold_purity} onChange={(v: string) => setFormData({...formData, gold_purity: v})} />
-                        <Input label="Weight (Grams)" value={specifications.weight || ''} onChange={(v: string) => handleSpecChange('weight', v)} />
-                      </>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {formData.category === 'Solid Gold' && (
+                        <>
+                            <Input label="Gold Purity (e.g. 24K)" value={formData.gold_purity} onChange={(v) => setFormData({...formData, gold_purity: v})} />
+                            <Input label="Weight (g)" value={specifications.weight || ''} onChange={(v) => handleSpecChange('weight', v)} />
+                        </>
                     )}
-                    {formData.asset_class === 'DIAMOND' && (
-                      <>
-                        <Input label="GIA Report #" value={formData.gia_report_number} onChange={(v: string) => setFormData({...formData, gia_report_number: v})} />
-                        <Input label="Carat" value={specifications.carat || ''} onChange={(v: string) => handleSpecChange('carat', v)} />
-                        <Input label="Clarity" value={specifications.clarity || ''} onChange={(v: string) => handleSpecChange('clarity', v)} />
-                        <Input label="Color" value={specifications.color || ''} onChange={(v: string) => handleSpecChange('color', v)} />
-                      </>
+                    {formData.category === 'Watches' && (
+                        <>
+                            <Input label="Movement" value={specifications.movement || ''} onChange={(v) => handleSpecChange('movement', v)} />
+                            <Input label="Case Material" value={specifications.case || ''} onChange={(v) => handleSpecChange('case', v)} />
+                            <Input label="Year" value={specifications.year || ''} onChange={(v) => handleSpecChange('year', v)} />
+                        </>
                     )}
-                    {formData.asset_class === 'WATCH' && (
-                      <>
-                        <Input label="Reference #" value={specifications.reference || ''} onChange={(v: string) => handleSpecChange('reference', v)} />
-                        <Input label="Movement" value={specifications.movement || ''} onChange={(v: string) => handleSpecChange('movement', v)} />
-                        <Input label="Year" value={specifications.year || ''} onChange={(v: string) => handleSpecChange('year', v)} />
-                      </>
+                    {formData.category === 'Diamonds' && (
+                        <>
+                            <Input label="GIA Report #" value={formData.gia_report} onChange={(v) => setFormData({...formData, gia_report: v})} />
+                            <Input label="Carat Weight" value={formData.carat_weight} onChange={(v) => setFormData({...formData, carat_weight: v})} />
+                            <Input label="Clarity" value={specifications.clarity || ''} onChange={(v) => handleSpecChange('clarity', v)} />
+                        </>
                     )}
                   </div>
                 </div>
 
                 <button 
                   disabled={isSubmitting}
-                  className="w-full bg-obsidian-900 text-gold py-8 rounded-[2.5rem] text-[12px] font-black uppercase tracking-[0.4em] flex items-center justify-center gap-4 hover:bg-gold hover:text-white disabled:opacity-50 transition-all shadow-2xl"
+                  className="w-full bg-obsidian-900 text-white py-6 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-gold transition-all shadow-lg flex items-center justify-center gap-3"
                 >
-                  {isSubmitting ? <Loader2 className="animate-spin" size={24}/> : 'Finalize Registry Entry'}
+                  {isSubmitting ? <Loader2 className="animate-spin" size={20}/> : 'Publish to Registry'}
                 </button>
               </form>
             </motion.div>
@@ -259,23 +248,20 @@ export default function AdminInventory() {
 
 function Input({ label, value, onChange }: any) {
   return (
-    <div className="space-y-4">
-      <label className="text-[10px] font-black text-obsidian-400 uppercase tracking-widest italic ml-6">{label}</label>
-      <input 
-        value={value} 
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={`ENTER ${label.toUpperCase()}`}
-        className="w-full bg-ivory-100 border border-ivory-300 rounded-[2rem] px-8 py-5 text-obsidian-900 font-bold uppercase tracking-widest focus:outline-none focus:border-gold/50 transition-all shadow-inner placeholder:text-obsidian-200 text-xs"
-      />
+    <div className="space-y-2">
+      <label className="text-[10px] font-bold text-obsidian-400 uppercase tracking-widest ml-1">{label}</label>
+      <input value={value} onChange={(e) => onChange(e.target.value)} className="w-full bg-white border border-ivory-300 rounded-lg px-4 py-3 text-sm text-obsidian-900 outline-none focus:border-gold transition-all" />
     </div>
   )
 }
 
-function StatBox({ label, value, color = "text-obsidian-900" }: any) {
-  return (
-    <div className="p-10 bg-white border border-ivory-300 rounded-[2.5rem] space-y-4 shadow-sm">
-      <p className="text-[10px] font-black text-obsidian-400 uppercase tracking-[0.4em] italic">{label}</p>
-      <p className={`text-3xl font-light italic tracking-tighter ${color}`}>{value}</p>
-    </div>
-  )
+function Select({ label, value, options, onChange }: any) {
+    return (
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold text-obsidian-400 uppercase tracking-widest ml-1">{label}</label>
+        <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full bg-white border border-ivory-300 rounded-lg px-4 py-3 text-sm text-obsidian-900 outline-none focus:border-gold transition-all h-[46px]">
+            {options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+        </select>
+      </div>
+    )
 }

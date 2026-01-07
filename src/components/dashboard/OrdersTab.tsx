@@ -3,12 +3,11 @@
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Box, ChevronRight, FileText, MapPin, 
-  ShieldCheck, Clock, ArrowUpRight, Loader2, 
-  History, PackageCheck, Globe
+  ChevronRight, FileText, MapPin, 
+  ShieldCheck, Clock, Loader2, 
+  ShoppingBag, CheckCircle2, Truck
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import CertificateDownload from '@/components/ui/CertificateDownload'
 
 export default function OrdersTab() {
   const [orders, setOrders] = useState<any[]>([])
@@ -21,7 +20,7 @@ export default function OrdersTab() {
         const { data } = await supabase
           .from('orders')
           .select('*')
-          .eq('client_id', user.id)
+          .eq('user_id', user.id) // Corrected to user_id to match our new schema
           .order('created_at', { ascending: false })
         setOrders(data || [])
       }
@@ -31,33 +30,32 @@ export default function OrdersTab() {
   }, [])
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center py-20 gap-4">
-      <Loader2 className="text-gold animate-spin" size={32} />
-      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-obsidian-300">Retrieving Ledger...</p>
+    <div className="flex flex-col items-center justify-center py-24 gap-4">
+      <Loader2 className="text-gold animate-spin" size={32} strokeWidth={1.5} />
+      <p className="label-caps text-obsidian-400">Loading Order History</p>
     </div>
   )
 
   if (orders.length === 0) return (
-    <div className="py-32 text-center space-y-8">
-      <div className="w-20 h-20 bg-white border border-ivory-300 rounded-[2rem] flex items-center justify-center mx-auto opacity-40">
-        <History size={32} className="text-obsidian-200" />
+    <div className="py-32 text-center space-y-6">
+      <div className="w-16 h-16 bg-white border border-ivory-300 rounded-full flex items-center justify-center mx-auto opacity-40">
+        <ShoppingBag size={24} className="text-obsidian-300" />
       </div>
       <div className="space-y-2">
-        <h4 className="text-xl font-light text-obsidian-900 italic uppercase">Registry Empty.</h4>
-        <p className="text-[10px] font-black text-obsidian-300 uppercase tracking-widest italic">No acquisitions found in current node.</p>
+        <h4 className="text-2xl font-medium text-obsidian-900 font-serif italic">No Orders Found</h4>
+        <p className="text-[10px] font-bold text-obsidian-400 uppercase tracking-widest">Your collection history is currently empty.</p>
       </div>
     </div>
   )
 
   return (
-    <div className="space-y-12">
-      <div className="flex items-center gap-4 mb-10">
-        <History className="text-gold" size={18} />
-        <h3 className="text-[11px] font-black text-obsidian-900 uppercase tracking-[0.5em] italic">Settlement History</h3>
+    <div className="space-y-8">
+      <div className="flex items-center gap-4 mb-6">
+        <p className="label-caps text-gold">Purchase History</p>
         <div className="h-[1px] flex-1 bg-ivory-300" />
       </div>
 
-      <div className="grid grid-cols-1 gap-12">
+      <div className="grid grid-cols-1 gap-6">
         {orders.map((order, i) => (
           <OrderCard key={order.id} order={order} index={i} />
         ))}
@@ -69,88 +67,94 @@ export default function OrdersTab() {
 function OrderCard({ order, index }: { order: any, index: number }) {
   const [expanded, setExpanded] = useState(false)
 
+  // Mapping DB status to Luxury Labels
+  const statusConfig: Record<string, { label: string, icon: any }> = {
+    pending: { label: 'Processing', icon: <Clock size={12} /> },
+    shipped: { label: 'In Transit', icon: <Truck size={12} /> },
+    delivered: { label: 'Delivered', icon: <CheckCircle2 size={12} /> }
+  }
+
+  const currentStatus = statusConfig[order.status] || statusConfig.pending
+
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      className="bg-white border border-ivory-300 rounded-[3.5rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-700 group"
+      transition={{ delay: index * 0.05 }}
+      className="bg-white border border-ivory-300 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
     >
-      {/* HEADER: Settlement Summary */}
-      <div className="p-10 md:p-14 flex flex-col md:flex-row justify-between items-start md:items-center gap-10 border-b border-ivory-100">
-        <div className="flex gap-8 items-center">
-          <div className="w-16 h-16 bg-ivory-50 border border-ivory-200 rounded-2xl flex items-center justify-center text-gold shadow-inner">
-            <PackageCheck size={24} />
-          </div>
-          <div className="space-y-2">
-            <p className="text-[10px] font-black text-gold uppercase tracking-[0.4em] italic leading-none">Acquisition Signature</p>
-            <h4 className="text-2xl font-light text-obsidian-900 italic tracking-tighter uppercase">ID_{order.id.slice(0, 8)}</h4>
-            <p className="text-[10px] font-mono text-obsidian-300 uppercase tracking-widest">SETTLED: {new Date(order.created_at).toLocaleDateString()}</p>
+      {/* CARD HEADER */}
+      <div className="p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="flex gap-6 items-center">
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-gold uppercase tracking-widest">Order Number</p>
+            <h4 className="text-lg font-bold text-obsidian-900 uppercase tracking-tight">#{order.id.slice(0, 8).toUpperCase()}</h4>
+            <p className="text-[10px] text-obsidian-400 font-medium uppercase tracking-widest">{new Date(order.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-12">
-           <div className="text-right">
-              <p className="text-[10px] font-black text-obsidian-300 uppercase tracking-widest italic mb-1">Total Valuation</p>
-              <p className="text-3xl font-light text-obsidian-900 italic tracking-tighter leading-none">${Number(order.total_valuation).toLocaleString()}</p>
-           </div>
-           <button 
+        <div className="flex items-center gap-8 md:gap-12 w-full md:w-auto justify-between md:justify-end">
+          <div className="text-right">
+            <p className="text-[10px] font-bold text-obsidian-400 uppercase tracking-widest mb-1">Total</p>
+            <p className="text-xl font-medium text-obsidian-900 font-serif italic">${Number(order.total_price || order.total_valuation).toLocaleString()}</p>
+          </div>
+          
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${order.status === 'delivered' ? 'bg-green-50 border-green-100 text-green-700' : 'bg-ivory-100 border-gold/10 text-gold'}`}>
+             {currentStatus.icon}
+             <span className="text-[9px] font-bold uppercase tracking-widest">{currentStatus.label}</span>
+          </div>
+
+          <button 
             onClick={() => setExpanded(!expanded)}
-            className={`w-14 h-14 rounded-full border border-ivory-300 flex items-center justify-center transition-all duration-500 ${expanded ? 'bg-gold border-gold text-white' : 'text-obsidian-300 hover:border-gold hover:text-gold'}`}
-           >
-             <ChevronRight className={`transition-transform duration-500 ${expanded ? 'rotate-90' : ''}`} size={20} />
-           </button>
+            className={`w-10 h-10 rounded-full border border-ivory-300 flex items-center justify-center transition-colors ${expanded ? 'bg-obsidian-900 text-white' : 'hover:border-gold hover:text-gold'}`}
+          >
+            <ChevronRight className={`transition-transform duration-300 ${expanded ? 'rotate-90' : ''}`} size={16} />
+          </button>
         </div>
       </div>
 
-      {/* EXPANDABLE: Asset Specifics */}
+      {/* EXPANDABLE CONTENT */}
       <AnimatePresence>
         {expanded && (
           <motion.div 
             initial={{ height: 0 }}
             animate={{ height: 'auto' }}
             exit={{ height: 0 }}
-            className="overflow-hidden"
+            className="overflow-hidden bg-ivory-50/30"
           >
-            <div className="p-10 md:p-14 bg-ivory-50/50 space-y-12">
+            <div className="p-8 border-t border-ivory-200 space-y-8">
               
               {/* ITEM LIST */}
-              <div className="space-y-8">
-                {order.items.map((item: any, idx: number) => (
-                  <div key={idx} className="flex flex-col md:flex-row justify-between items-center gap-8 bg-white p-8 rounded-3xl border border-ivory-200 shadow-sm">
-                    <div className="flex items-center gap-6">
-                       <img src={item.image} className="w-20 h-20 object-cover rounded-2xl border border-ivory-200 grayscale hover:grayscale-0 transition-all duration-700" alt={item.title} />
-                       <div className="space-y-2">
-                          <p className="text-[9px] font-black text-gold uppercase tracking-widest italic">{item.asset_class}</p>
-                          <h5 className="text-lg font-light text-obsidian-900 uppercase italic tracking-tighter">{item.title}</h5>
-                          <p className="text-xs font-mono text-obsidian-400 italic">${Number(item.price).toLocaleString()}</p>
+              <div className="space-y-4">
+                {order.items?.map((item: any, idx: number) => (
+                  <div key={idx} className="flex items-center justify-between gap-6 bg-white p-4 rounded-lg border border-ivory-200">
+                    <div className="flex items-center gap-4">
+                       <img src={item.image} className="w-14 h-16 object-cover rounded border border-ivory-100" alt={item.name} />
+                       <div className="space-y-1">
+                          <p className="text-[8px] font-bold text-gold uppercase tracking-widest">{item.category}</p>
+                          <h5 className="text-xs font-bold text-obsidian-900 uppercase tracking-tight">{item.name || item.title}</h5>
+                          <p className="text-[10px] text-obsidian-400 font-medium">${Number(item.price).toLocaleString()}</p>
                        </div>
-                    </div>
-                    
-                    <div className="flex gap-4">
-                       {/* THE SOVEREIGN CERTIFICATE DOWNLOAD */}
-                       <CertificateDownload order={order} item={item} />
-                       
-                       <button className="flex items-center gap-3 px-6 py-4 bg-white border border-ivory-300 rounded-2xl text-[10px] font-black uppercase tracking-widest text-obsidian-300 hover:text-gold hover:border-gold transition-all">
-                          <MapPin size={14} /> Tracking
-                       </button>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* BLOCKCHAIN SETTLEMENT PROOF */}
-              <div className="pt-8 border-t border-ivory-200 flex flex-col md:flex-row justify-between items-center gap-6">
-                 <div className="space-y-2">
-                    <p className="text-[9px] font-black text-obsidian-300 uppercase tracking-widest italic">Immutable Hash Registry</p>
-                    <code className="text-[10px] text-obsidian-400 bg-white px-4 py-2 rounded-full border border-ivory-200 font-mono">
-                      {order.tx_hash || '0x71C7656EC7AB88B098defB751B7401B5f6d8976F'}
-                    </code>
-                 </div>
-                 <div className="flex items-center gap-3">
-                    <ShieldCheck className="text-gold" size={16} />
-                    <span className="text-[10px] font-black text-gold uppercase tracking-[0.3em]">Protocol Finalized</span>
-                 </div>
+              {/* ACTIONS & DOCS */}
+              <div className="pt-6 border-t border-ivory-200 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="flex gap-4">
+                  <button className="flex items-center gap-2 px-5 py-3 bg-white border border-ivory-300 rounded-lg text-[9px] font-bold uppercase tracking-widest text-obsidian-600 hover:text-gold hover:border-gold transition-all shadow-sm">
+                    <FileText size={14} strokeWidth={1.5} /> View Invoice
+                  </button>
+                  <button className="flex items-center gap-2 px-5 py-3 bg-white border border-ivory-300 rounded-lg text-[9px] font-bold uppercase tracking-widest text-obsidian-600 hover:text-gold hover:border-gold transition-all shadow-sm">
+                    <MapPin size={14} strokeWidth={1.5} /> Track Package
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 opacity-50">
+                  <ShieldCheck className="text-gold" size={14} />
+                  <span className="text-[9px] font-bold text-obsidian-900 uppercase tracking-widest">Insured & Authenticated</span>
+                </div>
               </div>
 
             </div>
