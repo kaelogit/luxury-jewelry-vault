@@ -14,7 +14,6 @@ export default function ShippingPage() {
     <main className="min-h-screen bg-ivory-100 pt-32 pb-24 px-6 selection:bg-gold selection:text-white">
       <div className="max-w-6xl mx-auto space-y-20">
         
-        {/* I. HERO HEADER */}
         <header className="max-w-3xl space-y-6">
           <motion.div 
             initial={{ opacity: 0, y: 10 }} 
@@ -41,7 +40,6 @@ export default function ShippingPage() {
           </motion.p>
         </header>
 
-        {/* II. CORE PROMISES */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <PromiseCard 
             icon={<Globe size={24} />}
@@ -60,7 +58,6 @@ export default function ShippingPage() {
           />
         </section>
 
-        {/* III. THE HANDOVER PROCESS */}
         <section className="bg-white border border-ivory-300 rounded-3xl p-10 md:p-16 shadow-xl relative overflow-hidden">
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">
@@ -83,7 +80,6 @@ export default function ShippingPage() {
           </div>
         </section>
 
-        {/* IV. LOGISTICS FOOTER NAVIGATION */}
         <footer className="pt-20 border-t border-ivory-300">
           <div className="flex flex-col md:flex-row justify-between items-start gap-12">
             <div className="space-y-2">
