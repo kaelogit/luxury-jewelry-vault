@@ -1,117 +1,183 @@
 'use client'
 
-import React from 'react'
+import Link from 'next/link'
+import React, { useEffect, useState } from 'react'
 import { 
-  TrendingUp, 
   Users, 
   Package, 
-  Activity, 
-  ArrowUpRight, 
-  ArrowDownRight,
   ShieldCheck,
   Landmark,
-  ShoppingBag,
+  ChevronRight,
   Clock,
-  ChevronRight
+  Circle,
+  MessageSquare,
+  TrendingUp,
+  Activity
 } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { createClient } from '@/lib/supabase'
 
 export default function AdminDashboard() {
+  const supabase = createClient()
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    totalClients: 0,
+    totalRevenue: 0,
+    recentOrders: [] as any[],
+    distribution: { watches: 0, diamonds: 0, bullion: 0 },
+    loading: true
+  })
+
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        // 1. Fetch Product Distribution
+        const { data: products } = await supabase
+          .from('products')
+          .select('category')
+
+        const productCount = products?.length || 0
+        const watchCount = products?.filter(p => p.category === 'Watches').length || 0
+        const diamondCount = products?.filter(p => p.category === 'Diamonds').length || 0
+        const bullionCount = products?.filter(p => p.category === 'Gold').length || 0
+
+        // 2. Fetch Customer Count
+        const { count: clientCount } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('role', 'client')
+
+        // 3. Fetch Total Revenue (Sum of total_spent from all client profiles)
+        const { data: revenueData } = await supabase
+          .from('profiles')
+          .select('total_spent')
+
+        const totalRev = revenueData?.reduce((acc, curr) => acc + (Number(curr.total_spent) || 0), 0) || 0
+
+        // 4. Fetch Recent Orders
+        const { data: recentOrders } = await supabase
+          .from('orders')
+          .select('id, tracking_number, client_name, total_price, status, created_at')
+          .order('created_at', { ascending: false })
+          .limit(4)
+
+        setStats({
+          totalProducts: productCount,
+          totalClients: clientCount || 0,
+          totalRevenue: totalRev,
+          recentOrders: recentOrders || [],
+          distribution: {
+            watches: productCount > 0 ? Math.round((watchCount / productCount) * 100) : 0,
+            diamonds: productCount > 0 ? Math.round((diamondCount / productCount) * 100) : 0,
+            bullion: productCount > 0 ? Math.round((bullionCount / productCount) * 100) : 0,
+          },
+          loading: false
+        })
+      } catch (error) {
+        console.error("Dashboard Sync Error:", error)
+        setStats(s => ({ ...s, loading: false }))
+      }
+    }
+
+    fetchDashboardData()
+  }, [supabase])
+
+  if (stats.loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="w-8 h-8 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400">Loading Management Console</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-10 pb-10">
+    <div className="max-w-7xl mx-auto space-y-8 md:space-y-12 pb-20 font-sans px-4 md:px-0">
+      
       {/* 1. HEADER */}
-      <header className="flex flex-col gap-2">
-        <h2 className="text-4xl md:text-6xl font-medium tracking-tight text-obsidian-900 font-serif italic">
-          Vault <span className="text-gold not-italic">Analytics.</span>
-        </h2>
-        <p className="label-caps text-obsidian-400">Operational Overview & Asset Performance</p>
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+        <div className="space-y-1">
+          <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-black uppercase">
+            Boutique <span className="text-gold font-serif italic font-medium normal-case">Overview</span>
+          </h1>
+          <p className="text-[10px] uppercase font-bold tracking-[0.2em] text-gray-400">
+            Live Sales Performance & Inventory Analytics
+          </p>
+        </div>
+        
+        {/* QUICK ACTION: SUPPORT LINK */}
+        <Link 
+          href="/admin/concierge" 
+          className="flex items-center gap-3 px-6 py-3 bg-black text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-gold hover:text-black transition-all shadow-xl active:scale-95"
+        >
+          <MessageSquare size={16} className="text-gold" />
+          Client Support
+        </Link>
       </header>
 
-      {/* 2. CORE METRICS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          label="Total Revenue" 
-          value="$842,500" 
-          change="+14.2%" 
-          trend="up" 
-          icon={<Landmark size={20} />} 
-        />
-        <StatCard 
-          label="Pending Orders" 
-          value="08" 
-          change="+3" 
-          trend="up" 
-          icon={<ShoppingBag size={20} />} 
-        />
-        <StatCard 
-          label="Active Clients" 
-          value="142" 
-          change="+12" 
-          trend="up" 
-          icon={<Users size={20} />} 
-        />
-        <StatCard 
-          label="System Status" 
-          value="SECURE" 
-          icon={<ShieldCheck size={20} />} 
-        />
+      {/* 2. CORE METRICS GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <StatCard label="Total Revenue" value={`$${stats.totalRevenue.toLocaleString()}`} icon={<TrendingUp size={20} />} />
+        <StatCard label="Vault Inventory" value={stats.totalProducts.toString()} icon={<Package size={20} />} />
+        <StatCard label="Private Clients" value={stats.totalClients.toString()} icon={<Users size={20} />} />
+        <StatCard label="System Status" value="Secure" icon={<ShieldCheck size={20} className="text-green-600" />} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* 3. LIVE ORDER FEED */}
-        <div className="lg:col-span-2 bg-white border border-ivory-300 rounded-2xl p-8 shadow-sm">
-          <div className="flex justify-between items-center mb-8 pb-4 border-b border-ivory-100">
-            <h3 className="label-caps text-obsidian-900">Recent Transactions</h3>
-            <button className="text-[10px] text-gold hover:underline uppercase font-bold tracking-widest transition-all">
-              View Ledger
-            </button>
+        
+        {/* 3. RECENT ACTIVITY */}
+        <div className="lg:col-span-2 bg-white border border-gray-100 rounded-[2rem] p-6 md:p-10 shadow-sm">
+          <div className="flex justify-between items-center mb-8 border-b border-gray-50 pb-6">
+            <div className="flex items-center gap-3">
+              <Activity size={16} className="text-gold" />
+              <h3 className="text-[11px] font-bold uppercase tracking-widest text-black">Latest Transactions</h3>
+            </div>
+            <Link href="/admin/orders" className="text-[10px] text-gold hover:underline uppercase font-bold tracking-widest">
+              View All
+            </Link>
           </div>
           
-          <div className="space-y-6">
-            <ActivityRow 
-              title="New Acquisition" 
-              desc="Order #LV-9921 for 18K Gold Cuban Link ($12,400)" 
-              time="4 mins ago" 
-              status="Pending Wire" 
-            />
-            <ActivityRow 
-              title="Payment Verified" 
-              desc="BTC Transfer confirmed for 'Vintage Daytona'" 
-              time="28 mins ago" 
-              status="Processing" 
-            />
-            <ActivityRow 
-              title="Logistics Update" 
-              desc="Shipment #7721 departed Zurich Hub" 
-              time="2 hours ago" 
-              status="In Transit" 
-            />
-            <ActivityRow 
-              title="New Client Registered" 
-              desc="Member from United Arab Emirates" 
-              time="5 hours ago" 
-              status="Review" 
-            />
+          <div className="divide-y divide-gray-50">
+            {stats.recentOrders.length > 0 ? (
+              stats.recentOrders.map((order, idx) => (
+                <OrderRow 
+                  key={idx}
+                  id={order.tracking_number || `ORD-${order.id?.slice(0,6).toUpperCase()}`} 
+                  client={order.client_name} 
+                  amount={`$${Number(order.total_price).toLocaleString()}`} 
+                  time={new Date(order.created_at).toLocaleDateString()} 
+                  status={order.status} 
+                />
+              ))
+            ) : (
+              <div className="py-20 text-center space-y-4">
+                <Clock className="mx-auto text-gray-100" size={40} />
+                <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">No recent transactions</p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* 4. INVENTORY COMPOSITION */}
-        <div className="bg-white border border-ivory-300 rounded-2xl p-8 space-y-8 shadow-sm">
-          <h3 className="label-caps text-obsidian-900">Vault Distribution</h3>
+        {/* 4. INVENTORY BREAKDOWN */}
+        <div className="bg-white border border-gray-100 rounded-[2rem] p-6 md:p-10 space-y-10 shadow-sm">
+          <h3 className="text-[11px] font-bold uppercase tracking-widest text-black flex items-center gap-3">
+            <Circle size={8} className="fill-gold text-gold" /> Inventory Mix
+          </h3>
           
           <div className="space-y-8">
-            <ProgressBar label="Timepieces" percentage={45} color="bg-obsidian-900" />
-            <ProgressBar label="Solid Gold" percentage={35} color="bg-gold" />
-            <ProgressBar label="Loose Diamonds" percentage={20} color="bg-ivory-400" />
+            <ProgressBar label="Fine Watches" percentage={stats.distribution.watches} color="bg-black" />
+            <ProgressBar label="Diamonds" percentage={stats.distribution.diamonds} color="bg-gold" />
+            <ProgressBar label="Bullion" percentage={stats.distribution.bullion} color="bg-gray-300" />
           </div>
 
-          <div className="pt-6 border-t border-ivory-100">
-             <div className="p-4 bg-ivory-50 rounded-xl space-y-2">
-                <p className="text-[10px] font-bold text-obsidian-400 uppercase tracking-widest">Action Required</p>
-                <p className="text-xs text-obsidian-900 font-medium">3 GIA Certificates pending upload for recent diamond intake.</p>
-                <button className="text-[10px] text-gold font-bold uppercase hover:underline flex items-center gap-1">
-                    Resolve Now <ChevronRight size={10} />
-                </button>
+          <div className="pt-8 border-t border-gray-50">
+             <div className="p-6 bg-gray-50 rounded-3xl space-y-4">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-relaxed">
+                  Regular inventory audits ensure accurate valuation across all boutique channels.
+                </p>
+                <Link href="/admin/inventory" className="text-[10px] text-gold font-bold uppercase flex items-center gap-2 hover:translate-x-1 transition-transform">
+                    Manage Stock <ChevronRight size={12} />
+                </Link>
              </div>
           </div>
         </div>
@@ -120,59 +186,55 @@ export default function AdminDashboard() {
   )
 }
 
-/** * UI COMPONENT: Metric Card 
- */
-function StatCard({ label, value, change, trend, icon }: any) {
+function StatCard({ label, value, icon }: any) {
   return (
-    <div className="bg-white border border-ivory-300 p-8 rounded-2xl hover:border-gold transition-all group">
-      <div className="flex justify-between items-start mb-6">
-        <div className="text-gold group-hover:scale-110 transition-transform duration-500">
-          {icon}
-        </div>
-        {change && (
-          <span className={`text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1 ${trend === 'up' ? 'text-green-600 bg-green-50' : 'text-red-500 bg-red-50'}`}>
-            {trend === 'up' ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-            {change}
-          </span>
-        )}
+    <div className="bg-white border border-gray-100 p-8 rounded-[2rem] hover:border-gold/30 transition-all shadow-sm group">
+      <div className="bg-gray-50 w-12 h-12 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-gold/10 transition-colors">
+        <div className="text-black group-hover:text-gold transition-colors">{icon}</div>
       </div>
-      <p className="text-[10px] uppercase text-obsidian-400 font-bold tracking-widest mb-1">{label}</p>
-      <h4 className="text-3xl font-medium text-obsidian-900 font-serif italic">{value}</h4>
+      <p className="text-[10px] uppercase text-gray-400 font-bold tracking-[0.1em] mb-1">{label}</p>
+      <h4 className="text-2xl md:text-3xl font-bold text-black font-sans tracking-tight">{value}</h4>
     </div>
   )
 }
 
-/** * UI COMPONENT: Activity Row
- */
-function ActivityRow({ title, desc, time, status }: any) {
+function OrderRow({ id, client, amount, time, status }: any) {
   return (
-    <div className="flex items-center justify-between group cursor-pointer py-2">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-6 gap-4 group hover:bg-gray-50/50 px-4 rounded-3xl transition-colors">
       <div className="space-y-1">
-        <h5 className="text-[11px] font-bold text-obsidian-900 uppercase tracking-wider">{title}</h5>
-        <p className="text-xs text-obsidian-500 font-medium">{desc}</p>
-        <p className="text-[9px] text-obsidian-300 font-bold uppercase tracking-widest">{time}</p>
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-mono font-bold text-gold">{id}</span>
+          <h5 className="text-[11px] font-bold text-black uppercase tracking-wider">{client}</h5>
+        </div>
+        <p className="text-[10px] text-gray-400 font-bold flex items-center gap-2 uppercase tracking-tight">
+          <Clock size={10} /> {time}
+        </p>
       </div>
-      <div className="text-right">
-         <span className="text-[9px] font-black text-gold border border-gold/20 px-2 py-1 rounded-full uppercase tracking-widest">{status}</span>
+      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2">
+         <p className="text-[12px] font-bold text-black font-sans">{amount}</p>
+         <span className={`text-[8px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border shadow-sm ${
+           status === 'delivered' ? 'border-green-100 text-green-600 bg-green-50' : 'border-gold/20 text-gold bg-gold/5'
+         }`}>
+           {status}
+         </span>
       </div>
     </div>
   )
 }
 
-/** * UI COMPONENT: Progress Bar
- */
 function ProgressBar({ label, percentage, color }: any) {
     return (
-        <div className="space-y-3">
-            <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-obsidian-600">
+        <div className="space-y-3 font-sans">
+            <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-gray-500">
                 <span>{label}</span>
                 <span>{percentage}%</span>
             </div>
-            <div className="h-1.5 w-full bg-ivory-100 rounded-full overflow-hidden">
+            <div className="h-1.5 w-full bg-gray-50 rounded-full overflow-hidden border border-gray-100">
                 <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${percentage}%` }}
-                    className={`h-full ${color}`} 
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    className={`h-full ${color} shadow-sm`} 
                 />
             </div>
         </div>

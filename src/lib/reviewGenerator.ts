@@ -1,56 +1,61 @@
-// src/lib/reviewGenerator.ts
-
-interface Review {
-  id: string;
-  author: string;
-  content: string;
-  rating: number;
-  date: string;
+const REVIEW_COMPONENTS = {
+  names: ["Julianne M.", "Alistair W.", "Sienna R.", "Maximilian V.", "Eleanor D.", "Thibault C.", "Isabella K.", "Harrison F.", "Clara B.", "Benedict S."],
+  locations: ["Geneva", "London", "New York", "Dubai", "Zurich", "Singapore", "Paris", "Monaco", "Tokyo", "Hong Kong"],
+  
+  Watches: {
+    openers: ["The horological detail is stunning.", "An exceptional addition to my collection.", "The craftsmanship is beyond reproach.", "A masterclass in precision."],
+    middles: ["The weight on the wrist feels substantial yet balanced.", "The movement is virtually silent and perfectly regulated.", "The heritage of this piece is evident in every curve.", "The finish on the dial catches the light beautifully."],
+    closers: ["Handover was handled with absolute discretion.", "World-class logistics from Lume Vault.", "A seamless acquisition process.", "Highly recommended for serious collectors."]
+  },
+  Diamonds: {
+    openers: ["The brilliance is truly captivating.", "Exceeded the GIA certification expectations.", "A remarkable stone of significant character.", "Pure light captured in a perfect cut."],
+    middles: ["The clarity is astounding even under high magnification.", "The setting perfectly complements the stone's fire.", "Every facet reflects light with incredible intensity.", "An investment-grade piece of high-jewelry."],
+    closers: ["Arrived in signature discreet packaging.", "The provenance documentation is impeccable.", "A secure and professional physical transfer.", "The Lume Registry provides great peace of mind."]
+  },
+  Gold: {
+    openers: ["The ultimate form of wealth preservation.", "Purity verified and perfectly presented.", "A seamless reserve acquisition.", "Substantial and reassuring in its quality."],
+    middles: ["The bars were delivered in pristine, minted condition.", "Securely transferred to my private vault without incident.", "The encrypted settlement made the large transaction effortless.", "Essential for any diversified private portfolio."],
+    closers: ["Logistics were handled with institutional precision.", "Discreet and perfectly coordinated handover.", "The gold standard of service.", "Absolute trust in the Lume Vault protocol."]
+  }
 }
 
-const generatePool = (category: 'gold' | 'diamond' | 'watch', count: number): Review[] => {
-  const reviews: Review[] = [];
-
-  const authors = ["Member", "Collector", "Sovereign", "Registry", "Estate"];
-  
-  const vocab = {
-    gold: {
-      prefix: ["The 24K density is remarkable.", "Exceptional purity confirmed.", "A masterwork of bullion.", "The luster is breathtaking.", "A superior inflation hedge."],
-      middle: ["Verified the weight independently.", "The armored delivery protocol was precise.", "The craftsmanship is sovereign.", "Fits perfectly into my private estate.", "The price oracle provided a fair entry."],
-      suffix: ["Highly recommended for serious collectors.", "Will be acquiring more soon.", "Lume Vault remains my primary source.", "Flawless execution.", "Discretion was absolute."]
-    },
-    diamond: {
-      prefix: ["The VVS1 clarity is breathtaking.", "GIA report verified instantly.", "The fire and scintillation are superior.", "A significant addition to my estate.", "Mathematically perfect cut."],
-      middle: ["The light performance is incredible.", "Sourced via the Bespoke Hub perfectly.", "The provenance is impeccably clean.", "Far superior to high-res photography.", "The security handshake was reassuring."],
-      suffix: ["A world-class gemstone.", "Exceeded every expectation.", "Truly a centerpiece acquisition.", "Exceptional brilliance.", "The ultimate gift."]
-    },
-    watch: {
-      prefix: ["The movement is pristine.", "Investment grade reference.", "A rare horological find.", "Condition is better than described.", "The caliber timing is flawless."],
-      middle: ["The patina is exactly as I wanted.", "Box and papers authenticated by concierge.", "Running well within COSC standards.", "A masterwork of mechanical engineering.", "Off-market sourcing at its finest."],
-      suffix: ["An absolute masterpiece.", "Professional logistics throughout.", "The perfect vintage reference.", "A must-have for the vault.", "Elite service."]
-    }
+// Simple deterministic random function based on a seed string (Product ID)
+const seededRandom = (seed: string) => {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return (index: number) => {
+    const x = Math.sin(hash + index) * 10000;
+    return x - Math.floor(x);
   };
+}
+
+export function generateSovereignReviews(productId: string, category: 'Watches' | 'Diamonds' | 'Gold', count: number = 3) {
+  const random = seededRandom(productId);
+  const reviews = [];
+  const cat = REVIEW_COMPONENTS[category];
 
   for (let i = 0; i < count; i++) {
-    const p = vocab[category].prefix[i % vocab[category].prefix.length];
-    const m = vocab[category].middle[(i + 7) % vocab[category].middle.length];
-    const s = vocab[category].suffix[(i + 13) % vocab[category].suffix.length];
+    // Audit: Using unique multipliers for every component 
+    // This ensures Review 1 Opener is different from Review 2 Opener
+    const nameIdx = Math.floor(random(i + 10) * REVIEW_COMPONENTS.names.length);
+    const locIdx = Math.floor(random(i + 20) * REVIEW_COMPONENTS.locations.length);
     
+    // Sentence variety logic
+    const opIdx = Math.floor(random(i + 30) * cat.openers.length);
+    const midIdx = Math.floor(random(i + 40) * cat.middles.length);
+    const clIdx = Math.floor(random(i + 50) * cat.closers.length);
+
     reviews.push({
-      id: `${category}-${i}`,
-      author: `${authors[i % authors.length]} #${1000 + i}`,
-      content: `${p} ${m} ${s}`,
-      rating: 5,
-      date: 'VERIFIED ACQUISITION'
+      author: REVIEW_COMPONENTS.names[nameIdx],
+      location: REVIEW_COMPONENTS.locations[locIdx],
+      // We also shuffle the middle sentences to avoid "Samey" patterns
+      content: `${cat.openers[opIdx]} ${cat.middles[midIdx]} ${cat.closers[clIdx]}`,
+      date: "Recent Acquisition",
+      verified: true,
+      rating: 5
     });
   }
-
   return reviews;
-};
-
-// EXPORT THE FULL 3,000 REGISTRY
-export const ALL_REVIEWS = {
-  gold: generatePool('gold', 1000),
-  diamond: generatePool('diamond', 1000),
-  watch: generatePool('watch', 1000)
-};
+}

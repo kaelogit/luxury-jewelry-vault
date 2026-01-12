@@ -1,18 +1,19 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { Cormorant_Garamond, Montserrat } from "next/font/google";
+import { Libre_Baskerville, Montserrat } from "next/font/google";
+import Script from 'next/script' 
 import "./globals.css";
 
 // COMPONENTS
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 
-// REFINED TYPOGRAPHY: Institutional weights for high visibility
-const serif = Cormorant_Garamond({
+// TYPOGRAPHY: Elegant fonts for the Lume Vault experience
+const serif = Libre_Baskerville({
   subsets: ["latin"],
   variable: "--font-serif",
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "700"],
   style: ['normal', 'italic'],
 });
 
@@ -29,38 +30,49 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
 
-  // GATEKEEPER LOGIC: Hide Global UI on Auth and Admin pages
+  // VISIBILITY LOGIC: Hide Global Navbar/Footer on Auth, Admin, and User Dashboard pages
   const currentPath = pathname || '';
   const isAuthPage = currentPath.startsWith('/auth');
   const isAdminPage = currentPath.startsWith('/admin');
-  const hideGlobalUI = isAuthPage || isAdminPage;
+  const isDashboardPage = currentPath.startsWith('/dashboard'); // Added this check
+  
+  // Combine all paths that should NOT show the main website header/footer
+  const hideGlobalUI = isAuthPage || isAdminPage || isDashboardPage;
 
   return (
     <html lang="en" className="scroll-smooth">
+      <head>
+        {/* 3D ENGINE: Supports the interactive item viewer */}
+        <Script 
+          type="module" 
+          src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js" 
+          strategy="afterInteractive"
+        />
+      </head>
       <body
         className={`
           ${serif.variable} 
           ${sans.variable} 
           antialiased 
-          bg-ivory-100 
-          text-obsidian-900 
+          bg-white 
+          text-black 
           selection:bg-gold 
           selection:text-white
           overflow-x-hidden
         `}
       >
-        {/* GLOBAL NAVIGATION */}
+        {/* MAIN WEBSITE NAVIGATION: Only visible on public store pages */}
         {!hideGlobalUI && <Navbar />}
 
-        {/* MAIN DISPLAY AREA */}
+        {/* CONTENT AREA */}
         <main className={`
           relative 
-          ${hideGlobalUI ? 'z-50' : 'min-h-screen z-10 pt-16 md:pt-20'}
+          ${hideGlobalUI ? 'z-50 min-h-screen' : 'min-h-screen z-10 pt-16 md:pt-20'}
         `}>
           {children}
         </main>
         
-        {/* SITE FOOTER */}
+        {/* MAIN WEBSITE FOOTER: Only visible on public store pages */}
         {!hideGlobalUI && <Footer />}
       </body>
     </html>

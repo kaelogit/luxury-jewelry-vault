@@ -1,172 +1,190 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  ShieldCheck, CheckCircle2, 
-  Loader2, Globe, Lock, ArrowRight, Fingerprint, Search, Cpu
-} from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { ShieldCheck, CheckCircle2, Loader2, Globe, Activity } from 'lucide-react'
+import { createClient } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 export default function PaymentVerificationPage() {
-  const [status, setStatus] = useState('detecting') // detecting, verifying, finalizing, confirmed
-  const [loadingAuth, setLoadingAuth] = useState(true)
+  const supabase = createClient()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const orderId = searchParams.get('id')
+  const orderId = searchParams.get('orderId')
 
+  const [status, setStatus] = useState<'scanning' | 'detected' | 'confirmed'>('scanning')
+  const [order, setOrder] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  // I. FETCH ORDER & WALLET DETAILS
+  const fetchOrderDetails = useCallback(async () => {
+    if (!orderId) return
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single()
+
+    if (error) {
+      setError("Vault Synchronization Error")
+      return
+    }
+
+    // AUDIT FIX: If order is already confirmed, skip verification and go to success
+    if (data.status === 'confirmed' || data.status === 'dispatched' || data.status === 'delivered') {
+        router.push(`/checkout/success?orderId=${orderId}`)
+        return
+    }
+
+    setOrder(data)
+  }, [orderId, supabase, router])
+
+  useEffect(() => { fetchOrderDetails() }, [fetchOrderDetails])
+
+  // II. THE REAL BLOCKCHAIN WATCHER
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        router.push(`/auth/login?redirect=/checkout/verification${orderId ? `?id=${orderId}` : ''}`)
-      } else {
-        setLoadingAuth(false)
-        runVerificationFlow()
+    if (!order || status === 'confirmed') return
+
+    const checkBlockchain = async () => {
+      try {
+        const method = order.payment_method?.toUpperCase()
+        let endpoint = ''
+
+        // Dynamic API endpoints based on selection
+        if (method === 'BTC') {
+          endpoint = `https://api.blockcypher.com/v1/btc/main/addrs/${order.wallet_address}/balance`
+        } else if (method === 'ETH' || method === 'USDT') {
+          endpoint = `https://api.blockcypher.com/v1/eth/main/addrs/${order.wallet_address}/balance`
+        } else {
+          return // Manual methods don't use the blockchain watcher
+        }
+
+        const response = await fetch(endpoint)
+        const blockchainData = await response.json()
+
+        // logic: Detection based on unconfirmed vs confirmed balance
+        if (blockchainData.total_received > 0) {
+          setStatus('detected')
+          
+          // Move to confirmed if there are no pending tx or at least 1 confirmation
+          if (blockchainData.n_tx > 0 && blockchainData.unconfirmed_n_tx === 0) {
+            await finalizeOrder()
+          }
+        }
+      } catch (err) {
+        console.error("Blockchain Fetch Error:", err)
       }
     }
-    checkUser()
-  }, [router, orderId])
 
-  const runVerificationFlow = () => {
-    // Stage 1: Identification (0-3s)
-    const t1 = setTimeout(() => setStatus('verifying'), 3000)
-    
-    // Stage 2: Confirmation (3-6s)
-    const t2 = setTimeout(() => setStatus('finalizing'), 6000)
-    
-    // Stage 3: Success (6-9s)
-    const t3 = setTimeout(() => {
-      setStatus('confirmed')
-      // Optional: Auto-redirect to Success Page after confirmation
-      // setTimeout(() => router.push(`/checkout/success?id=${orderId}`), 2500)
-    }, 9000)
+    const finalizeOrder = async () => {
+      // 1. Update Order Status
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({ status: 'confirmed' })
+        .eq('id', orderId)
 
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); }
-  }
+      if (!updateError) {
+        // 2. AUDIT FIX: Update Delivery Logs for the "Perfect Line"
+        await supabase.from('delivery_logs').insert({
+            order_id: orderId,
+            milestone: 'Payment Verified via Network Consensus',
+            location: 'Global Mainnet Node'
+        })
 
-  if (loadingAuth) return (
-    <div className="h-screen bg-ivory-100 flex flex-col items-center justify-center gap-4">
-      <Loader2 className="text-gold animate-spin" size={32} />
-      <p className="label-caps text-obsidian-400 font-bold">Securing Access Node</p>
+        setStatus('confirmed')
+        setTimeout(() => router.push(`/checkout/success?orderId=${orderId}`), 3000)
+      }
+    }
+
+    const interval = setInterval(checkBlockchain, 15000)
+    return () => clearInterval(interval)
+  }, [order, status, orderId, router, supabase])
+
+  if (!orderId) return (
+    <div className="h-screen flex items-center justify-center bg-gray-50">
+        <p className="uppercase font-black text-[10px] tracking-[0.4em] text-red-500">Invalid Registry ID</p>
     </div>
   )
 
   return (
-    <main className="min-h-screen bg-ivory-100 flex items-center justify-center p-6 selection:bg-gold selection:text-white">
+    <main className="min-h-screen bg-ivory-50 flex items-center justify-center p-6">
       <div className="max-w-xl w-full space-y-12">
         
-        {/* OPERATIONAL HEADER */}
+        {/* HEADER */}
         <header className="text-center space-y-6">
-          <motion.div 
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="inline-flex p-8 bg-white rounded-3xl border border-ivory-300 shadow-2xl relative"
-          >
-            <div className="absolute inset-0 bg-gold/5 animate-pulse rounded-3xl" />
+          <div className="inline-flex p-8 bg-white rounded-full border border-ivory-200 shadow-xl relative">
+            <div className="absolute inset-0 bg-gold/5 animate-pulse rounded-full" />
             {status === 'confirmed' ? (
-              <CheckCircle2 className="text-gold relative z-10" size={56} strokeWidth={1.2} />
+              <CheckCircle2 className="text-gold relative z-10" size={48} strokeWidth={1} />
             ) : (
-              <Cpu className="text-gold animate-spin-slow relative z-10" size={56} strokeWidth={1.2} />
+              <Activity className="text-gold animate-pulse relative z-10" size={48} strokeWidth={1} />
             )}
-          </motion.div>
+          </div>
           
           <div className="space-y-2">
-            <h1 className="text-4xl md:text-5xl font-medium text-obsidian-900 font-serif italic tracking-tight uppercase">
-              Vault <span className="text-gold not-italic">Settlement</span>
+            <h1 className="text-4xl md:text-5xl font-bold text-obsidian-900 font-serif italic tracking-tight">
+              Network <span className="text-gold not-italic">Consensus</span>
             </h1>
-            <p className="label-caps text-obsidian-400">Transaction ID: {orderId?.slice(0, 12).toUpperCase() || 'SYNCHRONIZING'}</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em]">
+              Scanning {order?.payment_method} Ledger • Order #{orderId.slice(0, 8)}
+            </p>
           </div>
         </header>
 
-        {/* VERIFICATION TERMINAL */}
-        <div className="bg-white border border-ivory-300 rounded-[2.5rem] p-10 md:p-14 shadow-2xl space-y-10 relative overflow-hidden">
-          <div className="space-y-8">
-            <StatusLine 
-              label="Payment Node Identification" 
-              active={status === 'detecting'} 
-              done={['verifying', 'finalizing', 'confirmed'].includes(status)} 
+        {/* STATUS TERMINAL */}
+        <div className="bg-white border border-ivory-200 rounded-[2.5rem] p-10 shadow-2xl space-y-8 relative overflow-hidden">
+          <div className="space-y-6">
+            <StatusRow 
+              label="Scanning Network Nodes" 
+              active={status === 'scanning'} 
+              done={status !== 'scanning'} 
             />
-            <StatusLine 
-              label="Consensus Verification" 
-              active={status === 'verifying'} 
-              done={['finalizing', 'confirmed'].includes(status)} 
-            />
-            <StatusLine 
-              label="Asset Ownership Handshake" 
-              active={status === 'finalizing'} 
+            <StatusRow 
+              label="Transaction Detected" 
+              active={status === 'detected'} 
               done={status === 'confirmed'} 
             />
-            <StatusLine 
-              label="Registry Finalization" 
+            <StatusRow 
+              label="Authenticating Asset Allocation" 
               active={status === 'confirmed'} 
               done={status === 'confirmed'} 
             />
           </div>
 
-          {/* SECURITY FOOTER */}
-          <div className="pt-10 border-t border-ivory-100 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <ShieldCheck size={16} className="text-gold" />
-              <span className="text-[10px] font-black text-obsidian-900 uppercase tracking-[0.2em] italic">E2E Encrypted</span>
+          <div className="pt-8 border-t border-ivory-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldCheck size={14} className="text-gold" />
+              <span className="text-[9px] font-bold text-obsidian-900 uppercase tracking-widest">Protocol Secured</span>
             </div>
             <div className="flex items-center gap-2">
-                <Globe size={14} className="text-obsidian-200" />
-                <span className="text-[10px] font-bold text-obsidian-300 uppercase tracking-widest">Global Node: 0xLUME</span>
+                <Globe size={12} className="text-gray-300" />
+                <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">Mainnet Live</span>
             </div>
           </div>
         </div>
 
-        {/* POST-VERIFICATION ACTIONS */}
-        <AnimatePresence>
-          {status === 'confirmed' && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center space-y-8"
-            >
-              <p className="text-sm text-obsidian-600 leading-relaxed font-medium italic">
-                Handshake complete. Your acquisition is now recorded in the Sovereign Registry. 
-                Our logistics team has been notified for immediate vault release.
-              </p>
-              <div className="flex flex-col gap-4">
-                <button 
-                    onClick={() => router.push(`/checkout/success?id=${orderId}`)}
-                    className="w-full bg-obsidian-900 text-gold py-6 rounded-2xl text-[11px] font-black uppercase tracking-[0.4em] hover:bg-gold hover:text-white transition-all shadow-2xl flex items-center justify-center gap-3 group"
-                >
-                    View Official Confirmation <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
-                </button>
-                <button 
-                    onClick={() => router.push('/dashboard')}
-                    className="text-[10px] font-black text-obsidian-400 uppercase tracking-widest hover:text-gold transition-colors"
-                >
-                    Return to Private Vault
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* ERROR HANDLING */}
+        {error && <p className="text-center text-[10px] text-red-500 font-bold uppercase tracking-widest">{error}</p>}
+
+        {/* FOOTER NOTICE */}
+        <p className="text-center text-[9px] text-gray-400 font-bold uppercase tracking-[0.2em] leading-relaxed px-10">
+          This secure window will automatically update upon network confirmation. 
+          Please maintain this connection until the handshake is finalized.
+        </p>
       </div>
     </main>
   )
 }
 
-function StatusLine({ label, active, done }: { label: string, active: boolean, done: boolean }) {
+function StatusRow({ label, active, done }: { label: string, active: boolean, done: boolean }) {
   return (
-    <div className={`flex items-center gap-6 transition-all duration-1000 ${active || done ? 'opacity-100' : 'opacity-20'}`}>
-      <div className={`w-3 h-3 rounded-full transition-all duration-700 ${
-        done ? 'bg-gold shadow-[0_0_15px_gold]' : active ? 'bg-gold animate-pulse' : 'bg-ivory-300'
-      }`} />
-      <span className={`text-[12px] font-bold uppercase tracking-widest flex-1 ${
-        done ? 'text-obsidian-300 line-through italic' : active ? 'text-obsidian-900' : 'text-obsidian-200'
-      }`}>
+    <div className={`flex items-center gap-5 transition-all duration-700 ${active || done ? 'opacity-100' : 'opacity-20'}`}>
+      <div className={`w-1.5 h-1.5 rounded-full ${done ? 'bg-gold shadow-[0_0_10px_gold]' : active ? 'bg-gold animate-pulse' : 'bg-gray-200'}`} />
+      <span className={`text-[11px] font-bold uppercase tracking-widest flex-1 ${done ? 'text-gray-300 line-through' : 'text-obsidian-900'}`}>
         {label}
       </span>
-      <div className="w-6 h-6 flex items-center justify-center">
-        {active && !done && <Loader2 size={16} className="text-gold animate-spin" />}
-        {done && <CheckCircle2 size={18} className="text-gold" />}
-      </div>
+      {active && !done && <Loader2 size={14} className="text-gold animate-spin" />}
+      {done && <CheckCircle2 size={16} className="text-gold" />}
     </div>
   )
 }

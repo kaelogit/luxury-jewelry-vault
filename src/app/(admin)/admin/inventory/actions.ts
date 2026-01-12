@@ -3,117 +3,135 @@
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 
-// Using Service Role to ensure the Admin can write to the "Vault" without RLS restrictions
+// Institutional Admin Access
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
 /**
- * MASTER INVENTORY INGESTION
- * Synchronizes new luxury assets with the frontend Gallery and Product pages.
+ * HELPER: File Upload Handler
+ * Centralized logic for uploading images, videos, and 3D models
  */
-export async function createLuxuryAsset(formData: FormData) {
+async function uploadFile(file: File, folder: string) {
+  if (!file || file.size === 0) return null
+  
+  const fileExt = file.name.split('.').pop()
+  const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+  const filePath = `${folder}/${fileName}`
+
+  const { data, error } = await supabase.storage
+    .from('vault-media')
+    .upload(filePath, file)
+
+  if (error) throw error
+
+  const { data: publicUrl } = supabase.storage
+    .from('vault-media')
+    .getPublicUrl(filePath)
+    
+  return publicUrl.publicUrl
+}
+
+/**
+ * CREATE ACTION
+ */
+export async function createProduct(formData: FormData) {
+  return processAsset(null, formData)
+}
+
+/**
+ * UPDATE ACTION
+ */
+export async function updateProduct(id: string, formData: FormData) {
+  return processAsset(id, formData)
+}
+
+/**
+ * CORE LOGIC: MASTER ASSET PROCESSOR
+ * Synchronizes multi-media and technical specs with the Vault database
+ */
+async function processAsset(id: string | null, formData: FormData) {
   try {
     // 1. EXTRACT CORE IDENTITY
     const name = formData.get('name') as string
-    const price = formData.get('price') as string
-    const description = formData.get('description') as string
-    const category = formData.get('category') as string // e.g., 'Watches'
-    const sub_category = formData.get('sub_category') as string // e.g., 'Heritage'
-    const type = formData.get('type') as string // e.g., 'Automatic'
-    
-    // 2. LUXURY SPECIFICATIONS
-    const gold_purity = formData.get('gold_purity') as string // 18K, 24K, N/A
-    const carat_weight = formData.get('carat_weight') as string // For Diamonds
-    const gia_report = formData.get('gia_report') as string // Serial Number
-    const serial_number = formData.get('serial_number') as string // LV-XXXX
+    const category = formData.get('category') as string 
+    const brand = formData.get('brand') as string
+    const sku = formData.get('sku') as string 
+    const priceRaw = formData.get('price') as string
+    const price = parseFloat(priceRaw.replace(/[^0-9.]/g, ''))
 
-    // 3. FILE EXTRACTION
-    const imageFile = formData.get('image') as File
-    const videoFile = formData.get('video') as File
-    const modelFile = formData.get('model') as File
+    // 2. EXTRACT TECHNICAL ATTRIBUTES
+    const gold_purity = formData.get('gold_purity') as string 
+    const weight_grams = formData.get('weight_grams') as string 
+    const carat_weight = formData.get('carat_weight') as string 
+    const diamond_clarity = formData.get('diamond_clarity') as string
+    const diamond_color = formData.get('diamond_color') as string
+    const shape = formData.get('shape') as string
+    const movement = formData.get('movement') as string
+    const case_material = formData.get('case_material') as string
 
-    // 4. PARSE DYNAMIC SPECS (For the 'Specifications' table on Product pages)
-    // We capture things like "Movement", "Clasp", "Strap Material" here.
-    const rawSpecs = formData.get('specifications') as string
-    const specifications = rawSpecs ? JSON.parse(rawSpecs) : {}
+    // 3. MEDIA PROCESSING (Files vs URLs)
+    const videoFile = formData.get('video_file') as File
+    const modelFile = formData.get('model_file') as File
+    const imageFiles = formData.getAll('images') as File[]
+    const existingImagesRaw = formData.get('existing_images') as string
+    const existingImages = existingImagesRaw ? JSON.parse(existingImagesRaw) : []
 
-    // 5. SLUG GENERATION
-    const slug = name
-      .toLowerCase()
-      .replace(/[^\w ]+/g, '')
-      .replace(/ +/g, '-')
+    // Upload New Media
+    const newImageUrls = await Promise.all(imageFiles.map(file => uploadFile(file, 'products')))
+    const uploadedVideoUrl = await uploadFile(videoFile, 'cinematics')
+    const uploadedModelUrl = await uploadFile(modelFile, 'spatial-models')
 
-    let imageUrl = ''
-    let videoUrl = ''
-    let modelUrl = ''
+    // Final Media State
+    const finalImages = [...existingImages, ...newImageUrls.filter(url => url !== null)]
+    const video_url = uploadedVideoUrl || (formData.get('video_url') as string)
+    const three_d_model = uploadedModelUrl || (formData.get('three_d_model') as string)
 
-    // 6. STORAGE: IMAGE (The primary asset visual)
-    if (imageFile && imageFile.size > 0) {
-      const fileName = `products/${Date.now()}-${imageFile.name}`
-      const { data, error } = await supabase.storage.from('vault-media').upload(fileName, imageFile)
-      if (data) {
-        const { data: publicUrl } = supabase.storage.from('vault-media').getPublicUrl(fileName)
-        imageUrl = publicUrl.publicUrl
-      }
+    // 4. SLUG GENERATION (For new items only)
+    const slug = name.toLowerCase().trim().replace(/[^\w ]+/g, '').replace(/ +/g, '-')
+
+    const assetData: any = {
+      name,
+      price,
+      description: formData.get('description') as string,
+      category,
+      brand: brand || null,
+      sku: sku || null,
+      images: finalImages,
+      video_url: video_url || null,
+      three_d_model: three_d_model || null,
+      
+      // Dynamic Mappings
+      gold_purity: category === 'Gold' ? gold_purity : null,
+      weight_grams: category === 'Gold' ? parseFloat(weight_grams) : null,
+      carat_weight: category === 'Diamonds' ? parseFloat(carat_weight) : null,
+      diamond_clarity: category === 'Diamonds' ? diamond_clarity : null,
+      diamond_color: category === 'Diamonds' ? diamond_color : null,
+      shape: category === 'Diamonds' ? shape : null,
+      movement: category === 'Watches' ? movement : null,
+      case_material: category === 'Watches' ? case_material : null,
     }
 
-    // 7. STORAGE: VIDEO (The 4K cinematic loop)
-    if (videoFile && videoFile.size > 0) {
-      const fileName = `cinematics/${Date.now()}-${videoFile.name}`
-      const { data } = await supabase.storage.from('vault-media').upload(fileName, videoFile)
-      if (data) {
-        const { data: publicUrl } = supabase.storage.from('vault-media').getPublicUrl(fileName)
-        videoUrl = publicUrl.publicUrl
-      }
-    }
+    if (!id) assetData.slug = slug // Only set slug on create
 
-    // 8. STORAGE: 3D MODEL (Spatial reality file)
-    if (modelFile && modelFile.size > 0) {
-      const fileName = `spatial-models/${Date.now()}-${modelFile.name}`
-      const { data } = await supabase.storage.from('vault-media').upload(fileName, modelFile)
-      if (data) {
-        const { data: publicUrl } = supabase.storage.from('vault-media').getPublicUrl(fileName)
-        modelUrl = publicUrl.publicUrl
-      }
-    }
+    // 5. DATABASE SYNC
+    const query = id 
+      ? supabase.from('products').update(assetData).eq('id', id)
+      : supabase.from('products').insert([assetData])
 
-    // 9. DATABASE SYNC
-    // This matches the schema we use in our frontend filters!
-    const { error } = await supabase
-      .from('products')
-      .insert([{
-        name,
-        slug,
-        price: parseFloat(price),
-        description,
-        category,        // Used in Collection filters
-        sub_category,    // Used in Collection filters
-        type,            // Used in Collection filters
-        gold_purity,
-        carat_weight,
-        gia_report,
-        serial_number,
-        image: imageUrl,
-        video_url: videoUrl,
-        three_d_model: modelUrl,
-        specifications,  // JSONB for technical details
-        status: 'available',
-        is_visible: true,
-        created_at: new Date().toISOString()
-      }])
-
+    const { error } = await query
     if (error) throw error
 
-    // 10. REVALIDATION
+    // 6. CACHE REFRESH
     revalidatePath('/collection')
-    revalidatePath(`/product/${slug}`)
+    revalidatePath('/admin/inventory')
+    if (!id) revalidatePath(`/product/${slug}`)
     
     return { success: true }
 
   } catch (err: any) {
-    console.error("Inventory Sync Failure:", err.message)
+    console.error("Vault Registry Error:", err.message)
     return { error: err.message }
   }
 }

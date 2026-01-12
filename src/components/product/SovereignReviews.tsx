@@ -1,71 +1,70 @@
 'use client'
 
-import React from 'react'
-import { motion } from 'framer-motion'
-import { Star, ShieldCheck, User, Quote } from 'lucide-react'
+import React, { useMemo } from 'react'
+import { Star, CheckCircle2, MapPin } from 'lucide-react'
+import { generateSovereignReviews } from '@/lib/reviewGenerator'
 
-interface Props {
+interface ReviewProps {
   productId: string
-  assetClass: string
+  category: 'Watches' | 'Diamonds' | 'Gold'
 }
 
-const MOCK_REVIEWS = [
-  { id: 1, name: "Member_4821", location: "Geneva, CH", text: "The settlement process was seamless. Armored delivery was precise and the asset verification matched the GIA registry perfectly.", rating: 5 },
-  { id: 2, name: "Member_9920", location: "Zurich, CH", text: "Exceptional horological expertise. The Patek arrived in a hermetically sealed transit case. Sovereign status confirmed.", rating: 5 },
-  { id: 3, name: "Member_1024", location: "Dubai, UAE", text: "First acquisition via LUME. No legacy bank delays, just pure cryptographic settlement. This is the future of wealth.", rating: 5 },
-]
+export default function SovereignReviews({ productId, category }: ReviewProps) {
+  // useMemo ensures the reviews don't re-shuffle on every re-render
+  const reviews = useMemo(() => 
+    generateSovereignReviews(productId, category, 2), 
+    [productId, category]
+  );
 
-export default function SovereignReviews({ productId, assetClass }: Props) {
   return (
-    <section className="mt-48 space-y-20">
-      <header className="flex flex-col md:flex-row justify-between items-end gap-10">
-        <div className="space-y-6">
-          <div className="flex items-center gap-3">
-             <ShieldCheck className="text-gold" size={16} />
-             <p className="text-[10px] font-black text-gold uppercase tracking-[0.5em] italic">Member Ledger</p>
+    <section className="py-24 bg-white border-t border-ivory-300">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex flex-col md:flex-row justify-between items-end gap-8 mb-16">
+          <div className="space-y-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gold">Client Registry</p>
+            <h3 className="text-4xl md:text-6xl font-serif italic text-obsidian-900 leading-none">
+              The Sovereign <br/> <span className="text-gold not-italic">Verdict.</span>
+            </h3>
           </div>
-          <h2 className="text-5xl md:text-7xl font-light text-obsidian-900 italic tracking-tighter leading-none">
-            24h Member <span className="text-obsidian-400">Testimony.</span>
-          </h2>
-        </div>
-        <div className="flex items-center gap-6 pb-2">
-           <div className="flex text-gold">
-              {[...Array(5)].map((_, i) => <Star key={i} size={14} fill="currentColor" />)}
-           </div>
-           <p className="text-[10px] font-black text-obsidian-300 uppercase tracking-widest leading-none border-l border-ivory-300 pl-6">
-             100% Protocol Satisfaction
-           </p>
-        </div>
-      </header>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-        {MOCK_REVIEWS.map((rev, i) => (
-          <motion.div 
-            key={rev.id}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.15 }}
-            className="p-10 bg-white border border-ivory-300 rounded-[3rem] space-y-8 shadow-sm hover:shadow-2xl transition-all duration-700 group"
-          >
-            <Quote className="text-ivory-300 group-hover:text-gold transition-colors duration-700" size={32} />
-            <p className="text-obsidian-600 text-sm italic font-medium leading-relaxed">
-              "{rev.text}"
-            </p>
-            <div className="pt-8 border-t border-ivory-100 flex items-center justify-between">
-               <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-ivory-50 rounded-xl flex items-center justify-center text-obsidian-200">
-                    <User size={18} />
-                  </div>
-                  <div>
-                    <h5 className="text-[10px] font-black text-obsidian-900 uppercase tracking-widest">{rev.name}</h5>
-                    <p className="text-[8px] text-obsidian-300 uppercase tracking-widest font-bold">{rev.location}</p>
-                  </div>
+          {/* Rating Summary Block */}
+          <div className="flex items-center gap-6 border-l border-ivory-200 pl-8">
+             <span className="text-6xl font-serif italic text-obsidian-900">5.0</span>
+             <div className="space-y-1">
+               <div className="flex text-gold gap-0.5">
+                 {[...Array(5)].map((_, i) => <Star key={i} size={14} fill="currentColor" />)}
                </div>
-               <ShieldCheck className="text-gold/20" size={16} />
+               <p className="text-[9px] font-black uppercase tracking-[0.2em] text-obsidian-400">Verified Acquisitions</p>
+             </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+          {reviews.map((review, idx) => (
+            <div key={idx} className="space-y-6 p-8 md:p-12 bg-ivory-50 rounded-[2.5rem] border border-ivory-200 relative">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-obsidian-900 uppercase tracking-tight">{review.author}</h4>
+                    <CheckCircle2 size={12} className="text-gold" />
+                  </div>
+                  <div className="flex items-center gap-1.5 text-obsidian-400">
+                    <MapPin size={10} />
+                    <span className="text-[9px] font-bold uppercase tracking-widest">{review.location}</span>
+                  </div>
+                </div>
+                <span className="text-[9px] font-bold text-gold/40 uppercase tracking-[0.2em]">Verified</span>
+              </div>
+
+              <p className="text-obsidian-700 text-lg md:text-xl font-medium leading-relaxed italic">
+                &ldquo;{review.content}&rdquo;
+              </p>
+
+              <div className="flex text-gold/40 gap-1">
+                {[...Array(5)].map((_, i) => <Star key={i} size={10} fill="currentColor" />)}
+              </div>
             </div>
-          </motion.div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   )

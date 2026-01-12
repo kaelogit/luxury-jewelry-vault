@@ -4,120 +4,181 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
-  LayoutDashboard, Diamond, Wallet, MessageSquare, 
-  Truck, Settings, Power, ShieldCheck, History,
-  UserCircle, Activity, Box
+  LayoutDashboard, Users, Truck, Settings, 
+  Power, ShieldCheck, UserCircle, 
+  Box, Menu, X, CreditCard, ShoppingBag,
+  MessageSquare
 } from 'lucide-react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { motion, AnimatePresence } from 'framer-motion';
+import { createClient } from '@/lib/supabase';
+import { Toaster } from 'sonner'; // Integrated for Live Notifications
+import LiveNotifications from '@/components/ui/LiveNotifications'; // Headless listener
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const supabase = createClient();
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = createClientComponentClient();
-  const [adminName, setAdminName] = useState('Administrator');
+  const [adminProfile, setAdminProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // SECURITY GATE: Only allow authorized admins
   useEffect(() => {
     const checkAdmin = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
       
-      if (!session) {
-        router.push('/auth/login?redirect=/admin/dashboard');
+      if (authError || !user) {
+        window.location.href = '/auth/login?redirect=/admin/dashboard';
         return;
       }
 
-      // Check for Admin Metadata (Assuming you set 'role: admin' in Supabase)
-      const userRole = session.user.user_metadata?.role;
-      if (userRole !== 'admin') {
-        router.push('/dashboard'); // Send regular users back to client dashboard
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, full_name, role')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || profile?.role !== 'admin') {
+        router.replace('/dashboard');
         return;
       }
 
-      setAdminName(session.user.user_metadata?.full_name || 'System Admin');
+      setAdminProfile(profile);
       setLoading(false);
     };
 
     checkAdmin();
   }, [router, supabase]);
 
+  // Sync mobile menu close with route changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    if (typeof window !== 'undefined') {
+      localStorage.clear();
+      sessionStorage.clear();
+    }
     window.location.href = '/auth/login';
   };
 
   if (loading) return (
-    <div className="h-screen bg-obsidian-900 flex flex-col items-center justify-center gap-4">
-      <Activity className="text-gold animate-pulse" size={32} />
-      <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-gold/60 italic">Authorizing Admin Node...</p>
+    <div className="h-screen bg-black flex flex-col items-center justify-center gap-6">
+      <div className="w-10 h-10 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+      <div className="text-center space-y-1">
+        <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-gold">Lume Vault</p>
+        <p className="text-[8px] text-gray-500 uppercase tracking-widest px-4">Accessing Administrative Workspace</p>
+      </div>
     </div>
   );
 
   return (
-    <div className="flex h-screen bg-ivory-50 text-obsidian-900 font-sans selection:bg-gold selection:text-white">
+    <div className="flex h-screen bg-gray-50 text-black font-sans selection:bg-gold selection:text-white overflow-hidden">
       
-      {/* SIDEBAR: Operational Hub */}
-      <aside className="w-72 border-r border-ivory-300 flex flex-col p-8 bg-white shadow-sm relative z-20">
+      {/* I. GLOBAL NOTIFICATION SYSTEM */}
+      <Toaster position="top-right" expand={false} richColors closeButton />
+      {adminProfile?.id && <LiveNotifications userId={adminProfile.id} type="admin" />}
+
+      {/* MOBILE OVERLAY */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[40] lg:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* SIDEBAR NAVIGATION */}
+      <aside className={`
+        fixed inset-y-0 left-0 w-72 bg-white border-r border-gray-100 flex flex-col p-8 z-[50] transition-transform duration-500 ease-in-out lg:relative lg:translate-x-0
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
         
-        {/* BRANDING: Lume Vault Command */}
-        <div className="mb-10 px-2">
+        {/* BRANDING */}
+        <div className="mb-10 px-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
-             <div className="w-8 h-8 bg-gold flex items-center justify-center rounded-lg shadow-lg shadow-gold/20">
-                <ShieldCheck size={18} className="text-white" />
+             <div className="w-8 h-8 bg-black flex items-center justify-center rounded-lg shadow-lg">
+                <ShieldCheck size={18} className="text-gold" />
              </div>
-             <h1 className="text-xl font-medium tracking-tight text-obsidian-900 font-serif italic uppercase">
-               Vault <span className="text-gold not-italic">Ops</span>
+             <h1 className="text-xl font-bold tracking-tight text-black font-serif italic">
+               Lume <span className="text-gold not-italic font-sans">Admin</span>
              </h1>
           </div>
-          <p className="text-[8px] text-obsidian-400 tracking-[0.3em] font-bold uppercase mt-3 pl-1">Lume Control Center v4.0</p>
+          <button className="lg:hidden p-2 hover:bg-gray-50 rounded-lg" onClick={() => setIsMobileMenuOpen(false)}>
+            <X size={20} className="text-gray-400" />
+          </button>
         </div>
 
         {/* ADMIN IDENTITY CARD */}
-        <div className="mb-10 p-4 bg-ivory-100 rounded-xl border border-ivory-200 flex items-center gap-4">
-           <div className="w-10 h-10 rounded-full bg-white border border-ivory-300 flex items-center justify-center text-obsidian-400">
+        <div className="mb-8 p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center gap-4">
+           <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gold shadow-sm shrink-0">
               <UserCircle size={24} strokeWidth={1.5} />
            </div>
            <div className="overflow-hidden">
-              <p className="text-[10px] font-bold text-obsidian-900 truncate">{adminName}</p>
-              <p className="text-[8px] font-bold text-gold uppercase tracking-widest">Master Admin</p>
+              <p className="text-[10px] font-bold text-black truncate uppercase">{adminProfile?.full_name || 'Boutique Admin'}</p>
+              <p className="text-[8px] font-bold text-gold uppercase tracking-widest">Vault Administrator</p>
            </div>
         </div>
 
-        {/* NAVIGATION: Core Management */}
-        <nav className="flex-1 space-y-1">
-          <p className="text-[8px] font-bold text-obsidian-300 uppercase tracking-widest pl-4 mb-2">Systems</p>
+        {/* NAVIGATION LINKS */}
+        <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar pr-2">
+          <p className="text-[8px] font-bold text-gray-300 uppercase tracking-widest pl-4 mb-3">Boutique Operations</p>
           <NavItem href="/admin/dashboard" icon={<LayoutDashboard size={18}/>} label="Overview" active={pathname === '/admin/dashboard'} />
           <NavItem href="/admin/inventory" icon={<Box size={18}/>} label="Inventory" active={pathname === '/admin/inventory'} />
-          <NavItem href="/admin/orders" icon={<History size={18}/>} label="Order Ledger" active={pathname === '/admin/orders'} />
-          <NavItem href="/admin/mempool" icon={<Activity size={18}/>} label="Payment Node" active={pathname === '/admin/mempool'} />
+          <NavItem href="/admin/orders" icon={<ShoppingBag size={18}/>} label="Customer Orders" active={pathname === '/admin/orders'} />
+          <NavItem href="/admin/payments" icon={<CreditCard size={18}/>} label="Payments" active={pathname === '/admin/payments'} />
           
-          <div className="pt-6">
-            <p className="text-[8px] font-bold text-obsidian-300 uppercase tracking-widest pl-4 mb-2">Client Relations</p>
-            <NavItem href="/admin/concierge" icon={<MessageSquare size={18}/>} label="Advisory Desk" active={pathname === '/admin/concierge'} />
-            <NavItem href="/admin/tracking" icon={<Truck size={18}/>} label="Global Logistics" active={pathname === '/admin/tracking'} />
+          <div className="pt-8">
+            <p className="text-[8px] font-bold text-gray-300 uppercase tracking-widest pl-4 mb-3">Client Relations</p>
+            <NavItem href="/admin/customers" icon={<Users size={18}/>} label="Client Registry" active={pathname === '/admin/customers'} />
+            <NavItem href="/admin/tracking" icon={<Truck size={18}/>} label="Shipping Status" active={pathname === '/admin/tracking'} />
+            <NavItem href="/admin/concierge" icon={<MessageSquare size={18}/>} label="Support Center" active={pathname.startsWith('/admin/concierge')} />
           </div>
         </nav>
 
-        {/* FOOTER: Power Controls */}
-        <div className="mt-auto pt-6 border-t border-ivory-200">
-          <NavItem href="/admin/settings" icon={<Settings size={18}/>} label="System Config" active={pathname === '/admin/settings'} />
+        {/* FOOTER ACTIONS */}
+        <div className="mt-auto pt-6 border-t border-gray-100">
+          <NavItem href="/admin/settings" icon={<Settings size={18}/>} label="Settings" active={pathname === '/admin/settings'} />
           
           <button 
+            type="button"
             onClick={handleLogout}
-            className="w-full mt-2 flex items-center gap-4 px-5 py-3 rounded-lg transition-all text-obsidian-400 hover:text-red-500 hover:bg-red-50"
+            className="w-full mt-2 flex items-center gap-4 px-5 py-4 rounded-xl transition-all text-gray-400 hover:text-red-500 hover:bg-red-50 group"
           >
-            <Power size={18} />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Terminate Session</span>
+            <Power size={18} className="group-hover:scale-110 transition-transform" />
+            <span className="text-[10px] font-bold uppercase tracking-widest">Sign Out</span>
           </button>
         </div>
       </aside>
 
       {/* MAIN VIEWPORT */}
-      <main className="flex-1 overflow-y-auto bg-ivory-50 p-8 lg:p-12">
-        <div className="max-w-7xl mx-auto">
-          {children}
-        </div>
-      </main>
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        
+        {/* MOBILE HEADER BAR */}
+        <header className="lg:hidden h-20 bg-white border-b border-gray-100 px-6 flex items-center justify-between shrink-0 sticky top-0 z-[30]">
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold italic font-serif">Lume <span className="text-gold not-italic font-sans">Vault</span></h1>
+          </div>
+          <button 
+            onClick={() => setIsMobileMenuOpen(true)} 
+            className="p-3 bg-gray-50 text-black rounded-xl active:scale-90 transition-all shadow-sm"
+          >
+            <Menu size={20} />
+          </button>
+        </header>
+
+        {/* CONTENT AREA */}
+        <main className="flex-1 overflow-y-auto bg-gray-50 p-6 lg:p-12 pb-24 md:pb-12">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
@@ -125,15 +186,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 function NavItem({ href, icon, label, active }: { href: string, icon: any, label: string, active: boolean }) {
   return (
     <Link href={href}>
-      <div className={`flex items-center gap-4 px-5 py-3.5 rounded-lg transition-all group ${
+      <div className={`flex items-center gap-4 px-5 py-4 rounded-xl transition-all group ${
         active 
-        ? 'bg-obsidian-900 text-white shadow-xl shadow-obsidian-900/10' 
-        : 'text-obsidian-400 hover:text-obsidian-900 hover:bg-white'
+        ? 'bg-black text-white shadow-xl shadow-black/10 scale-[1.02]' 
+        : 'text-gray-400 hover:text-black hover:bg-white hover:shadow-sm'
       }`}>
-        <span className={`${active ? 'text-gold' : 'text-obsidian-300 group-hover:text-gold'} transition-colors`}>
+        <span className={`${active ? 'text-gold' : 'text-gray-300 group-hover:text-gold'} transition-colors`}>
           {icon}
         </span>
-        <span className="text-[10px] font-bold uppercase tracking-[0.15em]">{label}</span>
+        <span className="text-[10px] font-bold uppercase tracking-[0.15em] whitespace-nowrap">{label}</span>
       </div>
     </Link>
   );

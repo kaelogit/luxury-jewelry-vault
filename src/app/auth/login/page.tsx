@@ -5,14 +5,12 @@ import { supabase } from '@/lib/supabase'
 import { ArrowRight, Mail, Lock, Loader2, AlertCircle, ChevronLeft } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -20,26 +18,26 @@ export default function LoginPage() {
     setErrorMsg(null)
 
     try {
-      const { error, data } = await supabase.auth.signInWithPassword({ email, password })
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      })
+
       if (error) throw error
 
-      if (data.user) {
-        // Checking role for correct redirection
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles').select('role').eq('id', data.user.id).single()
-        
-        if (profileError) throw new Error("Profile verification failed.")
-
-        // Success Protocol
-        router.refresh()
-        router.push(profile?.role === 'admin' ? '/admin/dashboard' : '/dashboard')
+      if (data.session) {
+        // IMPORTANT: We wait 100ms to allow the cookie to propagate.
+        // Then we use .replace() to avoid "Back Button" loops.
+        setTimeout(() => {
+          window.location.replace('/dashboard')
+        }, 100)
       }
     } catch (err: any) {
-      setErrorMsg(err.message || "Invalid credentials. Please try again.")
+      setErrorMsg(err.message || "Invalid credentials.")
       setLoading(false)
     }
   }
-
+  
   return (
     <main className="min-h-screen w-full bg-ivory-100 flex flex-col relative overflow-hidden">
       
@@ -104,10 +102,12 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <AnimatePresence>
+            <AnimatePresence mode="wait">
               {errorMsg && (
                 <motion.div 
-                  initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, y: -10 }} 
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
                   className="p-4 bg-red-50 border border-red-100 rounded-lg flex items-center gap-3 text-xs text-red-600 font-medium"
                 >
                   <AlertCircle size={18} /> {errorMsg}
@@ -116,6 +116,7 @@ export default function LoginPage() {
             </AnimatePresence>
 
             <button 
+              type="submit"
               disabled={loading}
               className="w-full h-[64px] bg-obsidian-900 text-white rounded-lg text-sm font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-4 hover:bg-gold transition-all duration-300 shadow-lg disabled:opacity-50"
             >

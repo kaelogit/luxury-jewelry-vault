@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Lock, Cpu, EyeOff, Radio, ShieldCheck, Fingerprint, Landmark, Zap } from 'lucide-react'
+import { Lock, EyeOff, ShieldCheck, Fingerprint, Landmark, Map, Briefcase, Key } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 export default function SecurityStandards() {
@@ -9,52 +9,52 @@ export default function SecurityStandards() {
     <section className="py-24 px-6 md:px-12 bg-ivory-100">
       <div className="max-w-screen-2xl mx-auto bg-white border border-ivory-300 rounded-[3rem] p-10 md:p-24 overflow-hidden relative shadow-sm group">
         
-        {/* Subtle Institutional Glow */}
+        {/* Subtle Gold Aura */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gold/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center relative z-10">
           
-          {/* I. NARRATIVE */}
+          {/* I. NARRATIVE: The Philosophy of Discretion */}
           <div className="space-y-10">
             <div className="flex items-center gap-3">
-               <Fingerprint className="text-gold" size={18} />
-               <p className="label-caps text-gold">Institutional Infrastructure</p>
+               <ShieldCheck className="text-gold" size={18} />
+               <p className="label-caps text-gold">The Lume Protocol</p>
             </div>
             
-            <h2 className="text-6xl md:text-8xl font-medium text-obsidian-900 font-serif italic tracking-tight leading-none">
-              Built for <br/> 
-              <span className="text-gold not-italic">Private</span> <br/>
-              Sovereignty.
+            <h2 className="text-6xl md:text-8xl font-medium text-obsidian-900 font-serif italic tracking-tight leading-[0.9]">
+              The Art of <br/> 
+              <span className="text-gold not-italic">Invisible</span> <br/>
+              Protection.
             </h2>
 
             <div className="max-w-md border-l-2 border-gold pl-8">
               <p className="text-xl text-obsidian-600 font-medium leading-relaxed italic">
-                Lume Vault operates on a zero-trust protocol. We leverage Tier-4 deep storage and direct cryptographic settlement to ensure acquisitions remain absolute and under your private control.
+                Lume Vault operates beyond the reach of traditional systems. By merging boutique physical vaulting with silent cryptographic seals, we ensure your acquisitions remain absolute, unseen, and entirely yours.
               </p>
             </div>
           </div>
 
-          {/* II. FEATURE GRID */}
+          {/* II. FEATURE GRID: Rebuilt with Luxury Terminology */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <SecurityFeature 
               icon={<Landmark size={20}/>} 
-              title="Cold Storage" 
-              desc="Assets held in climate-controlled Tier-4 deep-earth nodes."
+              title="Boutique Vaulting" 
+              desc="Assets are housed in climate-perfect, off-registry nodes designed for absolute physical preservation."
             />
             <SecurityFeature 
-              icon={<Lock size={20}/>} 
-              title="AES-256 Vault" 
-              desc="Military-grade encryption for all private advisory channels."
+              icon={<Key size={20}/>} 
+              title="Sacred Keys" 
+              desc="Your identity is decoupled from your assets, using private-key architecture to ensure a truly anonymous lineage."
             />
             <SecurityFeature 
               icon={<EyeOff size={20}/>} 
-              title="Zero-Footprint" 
-              desc="On-chain settlement eliminates legacy banking metadata."
+              title="Quiet Settlement" 
+              desc="Direct acquisition paths bypass legacy financial eyes, leaving no public metadata or digital breadcrumbs."
             />
             <SecurityFeature 
-              icon={<Zap size={20}/>} 
-              title="Real-Time Sync" 
-              desc="Immediate logistical release upon node confirmation."
+              icon={<Map size={20}/>} 
+              title="Concierge Handover" 
+              desc="A private logistics chain mobilizes instantly, maintaining an unbroken line of custody to your door."
             />
           </div>
         </div>
@@ -77,7 +77,7 @@ function SecurityFeature({ icon, title, desc }: any) {
         <h4 className="text-lg font-medium font-serif italic text-obsidian-900 uppercase tracking-tight">
           {title}
         </h4>
-        <p className="text-xs text-obsidian-500 font-medium leading-relaxed">
+        <p className="text-[11px] text-obsidian-500 font-bold uppercase tracking-widest leading-relaxed">
           {desc}
         </p>
       </div>

@@ -1,25 +1,26 @@
 import { Metadata, ResolvingMetadata } from 'next'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase' // Standardizing on the factory function
 import ProductClient from './ProductClient'
 import { notFound } from 'next/navigation'
 
 type Props = {
-  params: Promise<{ slug: string }> // Next.js 15 requires params to be a Promise
+  params: Promise<{ slug: string }> 
 }
 
 /**
- * METADATA ENGINE
- * Generates dynamic SEO based on the standardized Master SQL columns
+ * METADATA ENGINE: SEO Optimization for High-Net-Worth Visibility
+ * Transformed from "Store Page" to "Official Asset Registry"
  */
 export async function generateMetadata(
   { params }: Props,
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const { slug } = await params
+  const supabase = createClient() // Audit: Ensuring fresh client for SSR
   
   const { data: product } = await supabase
     .from('products')
-    .select('name, description, image, price, category')
+    .select('name, description, images, price, category, brand')
     .eq('slug', slug)
     .single()
 
@@ -36,39 +37,42 @@ export async function generateMetadata(
     maximumFractionDigits: 0,
   }).format(product.price)
 
-  // Class Branding Logic synced with Master SQL
+  // Standardizing labels to professional industry terms
   const classBranding = product.category === 'Watches' 
-    ? 'HOROLOGICAL MASTERPIECE' 
+    ? `${product.brand || 'HOROLOGICAL'} MASTERPIECE` 
     : product.category === 'Diamonds' 
-    ? 'CERTIFIED GEMSTONE' 
-    : 'PURE 24K BULLION'
+    ? 'CERTIFIED INVESTMENT GEMSTONE' 
+    : 'INSTITUTIONAL PRECIOUS METAL BULLION'
+
+  const ogImage = product.images?.[0] || ''
 
   return {
     title: `${product.name} | ${classBranding}`,
     description: product.description || `Secure acquisition of this ${product.category} asset via LUME Vault.`,
     openGraph: {
       title: `${product.name} — ${priceLabel}`,
-      description: `Secured in LUME Vault. Insured logistics and direct settlement active.`,
-      images: [{ url: product.image || '' }],
+      description: `Secured within the LUME Vault. Professional logistics and direct settlement active.`,
+      images: [{ url: ogImage }],
       type: 'website',
     },
     twitter: {
       card: 'summary_large_image',
       title: `${product.name} — LUME VAULT`,
       description: `Current Valuation: ${priceLabel}`,
-      images: [product.image || ''],
+      images: [ogImage],
     },
   }
 }
 
 /**
  * MASTER SERVER FETCH
- * Standardized for the new SQL Schema
+ * Optimized for 1,000+ Product Scalability
  */
 export default async function Page({ params }: Props) {
   const { slug } = await params
+  const supabase = createClient()
 
-  // 1. Fetch Primary Asset using updated column names
+  // 1. Fetch Primary Asset: Selecting '*' to ensure review-critical data (id/category) is present
   const { data: product, error } = await supabase
     .from('products')
     .select('*')
@@ -78,19 +82,35 @@ export default async function Page({ params }: Props) {
   if (!product || error) notFound()
 
   // 2. Fetch "Complementary Acquisitions" (Recommendations)
-  // Standardized columns: name, category, image
+  // Audit: Filtering by the SAME category first for better relevance in high-end shopping
   const { data: recommendations } = await supabase
     .from('products')
-    .select('id, name, price, image, slug, category, specifications, gia_report, gold_purity, serial_number, description')
+    .select('id, name, price, images, slug, category, brand, gold_purity, diamond_clarity')
     .neq('id', product.id)
-    .limit(20)
+    .eq('is_visible', true)
+    .eq('category', product.category) // Strategic logic: Show similar assets first
+    .limit(4) 
 
-  // 3. Sync with ProductClient
-  // We pass the product and recommendations with corrected keys
+  // 3. Fallback Fetch: If not enough in same category, fill with others
+  let finalRecs = recommendations || []
+  if (finalRecs.length < 4) {
+    const { data: fallback } = await supabase
+      .from('products')
+      .select('id, name, price, images, slug, category, brand, gold_purity, diamond_clarity')
+      .neq('id', product.id)
+      .eq('is_visible', true)
+      .neq('category', product.category) // Get different items
+      .limit(4 - finalRecs.length)
+    
+    finalRecs = [...finalRecs, ...(fallback || [])]
+  }
+
+  // 4. Pass to Client Component
+  // Audit: Passing the raw product ID and Category is vital for the Sovereign Review Generator
   return (
     <ProductClient 
       product={product} 
-      recommendations={recommendations || []} 
+      recommendations={finalRecs} 
     />
   )
 }

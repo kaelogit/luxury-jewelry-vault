@@ -3,17 +3,19 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { 
-  User, MapPin, Wallet, Phone, 
+  User, MapPin, Phone, 
   ShieldCheck, Edit3, Save, 
-  Globe, Mail, Lock, Smartphone, ChevronRight
+  Globe, Mail, Lock, Smartphone, ChevronRight,
+  UserCircle
 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
 
 interface ProfileTabProps {
   profile: any
 }
 
 export default function ProfileTab({ profile }: ProfileTabProps) {
+  const supabase = createClient()
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -22,7 +24,6 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
     country: profile?.country || '',
     city: profile?.city || '',
     shipping_address: profile?.shipping_address || '',
-    wallet_address: profile?.wallet_address || '',
   })
 
   const handleUpdate = async () => {
@@ -37,6 +38,7 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
 
       if (!error) {
         setIsEditing(false)
+        // Smooth local update instead of hard reload for premium feel
         window.location.reload() 
       }
     }
@@ -44,31 +46,31 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
   }
 
   return (
-    <div className="max-w-4xl space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+    <div className="max-w-4xl space-y-12 md:space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
       
-      {/* I. ACCOUNT MANAGEMENT HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      {/* I. HEADER AREA */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-gray-100 pb-10">
         <div className="space-y-1">
-          <p className="label-caps text-gold">Account Management</p>
-          <h2 className="text-3xl md:text-5xl font-medium text-obsidian-900 font-serif italic tracking-tight">
-            Personal <span className="text-gold not-italic">Details.</span>
+          <p className="text-[10px] font-bold text-gold uppercase tracking-[0.3em]">Client Account</p>
+          <h2 className="text-3xl md:text-5xl font-bold text-black font-serif italic tracking-tight leading-none">
+            Personal <span className="text-gold not-italic">Settings</span>
           </h2>
         </div>
         
         {!isEditing ? (
           <button 
             onClick={() => setIsEditing(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-white border border-ivory-300 rounded-lg text-[10px] font-bold uppercase tracking-widest text-obsidian-900 hover:border-gold transition-all shadow-sm"
+            className="flex items-center gap-2 px-6 py-4 bg-white border border-gray-200 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-black hover:border-gold transition-all shadow-sm active:scale-95"
           >
-            <Edit3 size={14} /> Edit Profile
+            <Edit3 size={14} /> Update Profile
           </button>
         ) : (
           <div className="flex gap-4">
-             <button onClick={() => setIsEditing(false)} className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-obsidian-400 hover:text-red-500 transition-colors">Cancel</button>
+             <button onClick={() => setIsEditing(false)} className="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-red-500 transition-colors">Discard</button>
              <button 
               onClick={handleUpdate}
               disabled={loading}
-              className="flex items-center gap-3 px-8 py-3 bg-obsidian-900 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-gold transition-all shadow-lg"
+              className="flex items-center gap-3 px-8 py-4 bg-black text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-gold hover:text-black transition-all shadow-xl active:scale-95"
              >
                {loading ? 'Saving...' : 'Save Changes'} <Save size={14} />
              </button>
@@ -76,13 +78,14 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
         )}
       </div>
 
-      {/* II. CORE DATA GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+      {/* II. IDENTITY & CONTACT GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
         <ProfileField 
           label="Full Name" 
           value={formData.full_name} 
-          icon={<User />}
+          icon={<UserCircle />}
           isEditing={isEditing}
+          placeholder="e.g. Johnathan Doe"
           onChange={(v:any) => setFormData({...formData, full_name: v})}
         />
         <ProfileField 
@@ -90,62 +93,54 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
           value={formData.phone} 
           icon={<Phone />}
           isEditing={isEditing}
+          placeholder="+1 (555) 000-0000"
           onChange={(v:any) => setFormData({...formData, phone: v})}
         />
-        <div className="md:col-span-2">
-          <ProfileField 
-            label="Digital Asset Wallet (Optional)" 
-            value={formData.wallet_address} 
-            icon={<Wallet />}
-            isEditing={isEditing}
-            onChange={(v:any) => setFormData({...formData, wallet_address: v})}
-          />
-        </div>
-
+        
         {/* SHIPPING SECTION */}
-        <div className="md:col-span-2 pt-8 border-t border-ivory-200">
-           <div className="flex items-center gap-4 mb-8">
-              <p className="label-caps !text-obsidian-900">Primary Shipping Address</p>
-              <div className="h-[1px] flex-1 bg-ivory-200" />
+        <div className="md:col-span-2 pt-12 border-t border-gray-100">
+           <div className="flex items-center gap-4 mb-10">
+              <p className="text-[10px] font-bold text-black uppercase tracking-[0.2em]">Shipping Preferences</p>
+              <div className="h-[1px] flex-1 bg-gray-100" />
            </div>
            
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
-              <ProfileField label="Country" value={formData.country} icon={<Globe />} isEditing={isEditing} onChange={(v:any) => setFormData({...formData, country: v})} />
-              <ProfileField label="City" value={formData.city} icon={<MapPin />} isEditing={isEditing} onChange={(v:any) => setFormData({...formData, city: v})} />
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
+              <ProfileField label="Country" value={formData.country} icon={<Globe />} isEditing={isEditing} placeholder="United States" onChange={(v:any) => setFormData({...formData, country: v})} />
+              <ProfileField label="City" value={formData.city} icon={<MapPin />} isEditing={isEditing} placeholder="New York" onChange={(v:any) => setFormData({...formData, city: v})} />
               <div className="md:col-span-2">
-                <ProfileField label="Full Delivery Address" value={formData.shipping_address} icon={<MapPin />} isEditing={isEditing} onChange={(v:any) => setFormData({...formData, shipping_address: v})} />
+                <ProfileField label="Delivery Address" value={formData.shipping_address} icon={<MapPin />} isEditing={isEditing} placeholder="Street name, Building, Apartment" onChange={(v:any) => setFormData({...formData, shipping_address: v})} />
               </div>
            </div>
         </div>
       </div>
 
-      {/* III. ACCOUNT INTEGRITY (Integrated Security) */}
-      <section className="pt-12 border-t border-ivory-200 space-y-8">
-        <div className="space-y-2">
-            <p className="label-caps text-obsidian-900">Account Integrity</p>
-            <p className="text-xs text-obsidian-400 max-w-md uppercase tracking-widest font-bold">Security preferences and authentication methods.</p>
+      {/* III. SECURITY SECTION */}
+      <section className="pt-16 border-t border-gray-100 space-y-10">
+        <div className="space-y-2 text-center md:text-left">
+            <h4 className="text-[11px] font-bold text-black uppercase tracking-[0.2em]">Account Security</h4>
+            <p className="text-[10px] text-gray-400 max-w-md uppercase tracking-widest leading-relaxed">Secure your personal data and authentication methods.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <SecurityCard 
-                title="Security Password" 
-                desc="Update your authentication credentials." 
+                title="Account Password" 
+                desc="Change your login credentials." 
                 icon={<Lock size={18} />} 
             />
             <SecurityCard 
-                title="Two-Factor Auth" 
-                desc="Biometric and device-based protection." 
+                title="Device Security" 
+                desc="Manage 2FA and Biometric access." 
                 icon={<Smartphone size={18} />} 
-                status="Active"
+                status="Verified"
             />
         </div>
       </section>
 
-      {/* TRUST FOOTER */}
-      <div className="mt-12 p-6 bg-white border border-ivory-300 rounded-xl flex items-start gap-4">
-        <ShieldCheck className="text-gold shrink-0" size={20} />
-        <p className="text-[10px] text-obsidian-500 font-medium uppercase tracking-widest leading-relaxed">
-          Your personal data is encrypted and used exclusively for logistics and insurance verification. Lume Vault does not share client coordinates with third-party marketing entities.
+      {/* PRIVACY DISCLOSURE */}
+      <div className="mt-12 p-8 bg-gray-50 rounded-[2rem] border border-gray-100 flex flex-col md:flex-row items-center md:items-start gap-6 text-center md:text-left">
+        <ShieldCheck className="text-gold shrink-0 mt-1" size={24} />
+        <p className="text-[10px] text-gray-500 font-medium uppercase tracking-widest leading-relaxed">
+          Lume Vault employs end-to-end encryption for all personal data. Your contact details are strictly used for logistics coordination and insurance purposes. We never disclose client data to third-party institutions.
         </p>
       </div>
 
@@ -153,28 +148,26 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
   )
 }
 
-/**
- * UI COMPONENT: Individual Profile Field
- */
-function ProfileField({ label, value, icon, isEditing, onChange }: any) {
+function ProfileField({ label, value, icon, isEditing, onChange, placeholder }: any) {
   return (
-    <div className="space-y-3 group">
-      <div className="flex items-center gap-2 text-obsidian-400 group-focus-within:text-gold transition-colors">
-        {React.cloneElement(icon as React.ReactElement<any>, { size: 14, className: "text-gold" })}
-        <span className="text-[10px] font-bold uppercase tracking-widest">{label}</span>
+    <div className="space-y-4 group">
+      <div className="flex items-center gap-2 text-gray-400 group-focus-within:text-gold transition-colors">
+        {React.cloneElement(icon as React.ReactElement<any>, { size: 16, className: "text-gold/50" })}
+        <span className="text-[9px] font-bold uppercase tracking-[0.2em]">{label}</span>
       </div>
       
       {isEditing ? (
         <input 
           type="text"
           value={value}
+          placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-white border border-ivory-300 rounded-lg p-4 text-sm text-obsidian-900 outline-none focus:border-gold transition-all"
+          className="w-full bg-white border border-gray-200 rounded-2xl p-5 text-sm text-black outline-none focus:border-gold transition-all shadow-inner placeholder:text-gray-200"
         />
       ) : (
-        <div className="h-12 flex items-center border-l-2 border-ivory-200 pl-6 group-hover:border-gold transition-all">
-          <p className="text-lg font-medium text-obsidian-900 font-serif italic tracking-tight uppercase">
-            {value || 'Not provided'}
+        <div className="min-h-[50px] flex items-center border-l-2 border-gray-100 pl-8 group-hover:border-gold transition-all duration-500">
+          <p className="text-lg font-bold text-black uppercase tracking-tight">
+            {value || <span className="text-gray-200 italic normal-case font-medium">Pending Update...</span>}
           </p>
         </div>
       )}
@@ -182,23 +175,20 @@ function ProfileField({ label, value, icon, isEditing, onChange }: any) {
   )
 }
 
-/**
- * UI COMPONENT: Integrated Security Card
- */
 function SecurityCard({ title, desc, icon, status }: any) {
     return (
-        <div className="p-6 bg-white border border-ivory-300 rounded-xl flex items-center justify-between group hover:border-gold transition-all cursor-pointer">
-            <div className="flex items-center gap-5">
-                <div className="text-gold opacity-40 group-hover:opacity-100 transition-opacity">{icon}</div>
+        <div className="p-8 bg-white border border-gray-100 rounded-[2rem] flex items-center justify-between group hover:border-gold hover:shadow-xl transition-all duration-500 cursor-pointer">
+            <div className="flex items-center gap-6">
+                <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gold transition-colors group-hover:bg-gold group-hover:text-black shadow-inner">{icon}</div>
                 <div className="space-y-1">
                     <div className="flex items-center gap-3">
-                        <h4 className="text-[11px] font-bold uppercase tracking-widest text-obsidian-900">{title}</h4>
-                        {status && <span className="text-[8px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-black uppercase tracking-widest border border-green-100">{status}</span>}
+                        <h4 className="text-[11px] font-bold uppercase tracking-widest text-black">{title}</h4>
+                        {status && <span className="text-[8px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest border border-green-100">{status}</span>}
                     </div>
-                    <p className="text-[10px] text-obsidian-400 font-medium">{desc}</p>
+                    <p className="text-[10px] text-gray-400 font-medium">{desc}</p>
                 </div>
             </div>
-            <ChevronRight size={16} className="text-obsidian-300 group-hover:text-gold transition-colors" />
+            <ChevronRight size={16} className="text-gray-200 group-hover:text-gold transition-colors" />
         </div>
     )
 }

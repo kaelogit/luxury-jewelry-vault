@@ -1,241 +1,280 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import React, { useEffect, useState, useRef } from 'react'
+import { createClient } from '@/lib/supabase'
 import { 
   Plus, Edit, Trash2, X, Upload, Loader2, 
-  Check, Box, Gem, Clock, ShieldCheck, Search, Filter
+  Camera, Video, Cuboid, Search, Trash 
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { createLuxuryAsset } from './actions'
+import { createProduct, updateProduct } from './actions'
 
 export default function AdminInventory() {
+  const supabase = createClient()
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [brands, setBrands] = useState<string[]>([])
 
-  // --- 1. DYNAMIC CATEGORY MAPPING ---
-  const CATEGORIES = ['Watches', 'Solid Gold', 'Diamonds', 'Bespoke']
-  const SUB_CATEGORIES: Record<string, string[]> = {
-    'Watches': ['Heritage', 'Contemporary', 'Limited Edition'],
-    'Solid Gold': ['Chains', 'Rings', 'Investment Bars'],
-    'Diamonds': ['GIA Certified', 'Loose Stones'],
-    'Bespoke': ['Custom Commissions']
+  // --- STANDARD FILTERS ---
+  const CATEGORIES = ['Watches', 'Gold', 'Diamonds']
+  const FILTERS = {
+    purities: ['24K', '22K', '18K', '14K', '.999 Fine'],
+    clarities: ['FL', 'IF', 'VVS1', 'VVS2', 'VS1', 'VS2', 'SI1'],
+    movements: ['Automatic', 'Manual Wind', 'Quartz', 'Tourbillon'],
+    diamondColors: ['D', 'E', 'F', 'G', 'H', 'Fancy Intense Yellow'],
+    shapes: ['Round', 'Princess', 'Emerald', 'Radiant', 'Oval']
   }
 
-  const [formData, setFormData] = useState({
-    name: '',
-    price: '',
-    category: 'Watches',
-    sub_category: 'Heritage',
-    type: 'Automatic',
-    serial_number: '',
-    description: '',
-    gold_purity: '',
-    carat_weight: '',
-    gia_report: ''
+  const [formData, setFormData] = useState<any>({
+    name: '', price: '', category: 'Watches', brand: '', sku: '',
+    description: '', gold_purity: '24K', carat_weight: '',
+    diamond_clarity: 'VVS1', diamond_color: 'D', shape: 'Round',
+    movement: 'Automatic', video_url: '', three_d_model: '', images: []
   })
-  
-  const [specifications, setSpecifications] = useState<any>({})
+
+  // State for image previews (up to 3)
+  const [previews, setPreviews] = useState<string[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { fetchProducts() }, [])
 
   async function fetchProducts() {
     setLoading(true)
     const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false })
-    if (data) setProducts(data)
+    if (data) {
+      setProducts(data)
+      const uniqueBrands: any = Array.from(new Set(data.map(p => p.brand).filter(Boolean)))
+      setBrands(uniqueBrands)
+    }
     setLoading(false)
   }
 
-  const handleSpecChange = (key: string, value: string) => {
-    setSpecifications((prev: any) => ({ ...prev, [key]: value }))
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length + previews.length > 3) {
+      alert("Maximum 3 images allowed per product.")
+      return
+    }
+    const newPreviews = files.map(file => URL.createObjectURL(file))
+    setPreviews([...previews, ...newPreviews])
+  }
+
+  const removePreview = (index: number) => {
+    setPreviews(prev => prev.filter((_, i) => i !== index))
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Are you sure you want to delete this product? This cannot be undone.')) return
+    const { error } = await supabase.from('products').delete().eq('id', id)
+    if (!error) fetchProducts()
+  }
+
+  function handleEdit(p: any) {
+    setEditingId(p.id)
+    setFormData({ ...p, price: p.price.toString() })
+    setPreviews(p.images || [])
+    setIsModalOpen(true)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    
+    const form = new FormData(e.currentTarget as HTMLFormElement)
+    // Send existing URLs separately so backend knows what to keep
+    form.append('existing_images', JSON.stringify(previews.filter(p => p.startsWith('http'))))
 
-    const submissionData = new FormData()
-    Object.entries(formData).forEach(([key, value]) => submissionData.append(key, value))
-    submissionData.append('specifications', JSON.stringify(specifications))
-
-    const imageInput = document.getElementById('image-upload') as HTMLInputElement
-    if (imageInput?.files?.[0]) submissionData.append('image', imageInput.files[0])
-
-    const result = await createLuxuryAsset(submissionData)
-
-    if (result.error) {
-      alert(`Sync Error: ${result.error}`)
+    let result;
+    if (editingId) {
+      result = await updateProduct(editingId, form)
     } else {
+      result = await createProduct(form)
+    }
+
+    if (result.success) {
       setIsModalOpen(false)
       fetchProducts()
-      resetForm()
+      setEditingId(null)
+      setPreviews([])
+    } else {
+      alert(result.error)
     }
     setIsSubmitting(false)
   }
 
-  const resetForm = () => {
-    setFormData({
-      name: '', price: '', category: 'Watches', sub_category: 'Heritage', type: 'Automatic',
-      serial_number: '', description: '', gold_purity: '', carat_weight: '', gia_report: ''
-    })
-    setSpecifications({})
-  }
+  const filteredProducts = products.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    p.sku?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.brand?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   return (
-    <main className="space-y-10 pb-20">
-      
-      {/* HEADER */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-        <div className="space-y-2">
-          <p className="label-caps text-gold">Vault Registry</p>
-          <h1 className="text-4xl md:text-6xl font-medium text-obsidian-900 font-serif italic tracking-tight">
-            Inventory <span className="text-obsidian-400 not-italic">Control.</span>
-          </h1>
+    <main className="space-y-10 pb-20 font-sans">
+      <header className="flex justify-between items-end">
+        <div>
+          <h1 className="text-4xl font-bold text-black tracking-tight">Product <span className="text-gold font-serif italic">Inventory</span></h1>
+          <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">{products.length} Items in Catalog</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-obsidian-900 text-white px-8 py-4 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-3 hover:bg-gold transition-all shadow-lg"
-        >
-          <Plus size={18} /> Add New Asset
+        <button onClick={() => { setEditingId(null); setFormData({category: 'Watches'}); setPreviews([]); setIsModalOpen(true); }} className="bg-black text-white px-8 py-4 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-gold transition-all active:scale-95 flex items-center gap-2">
+          <Plus size={16}/> Add Product
         </button>
       </header>
 
-      {/* SEARCH & FILTER BAR */}
-      <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-xl border border-ivory-300 shadow-sm">
-        <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-obsidian-300" size={18} />
-            <input type="text" placeholder="Search by name or serial..." className="w-full pl-12 pr-4 py-3 bg-ivory-50 border border-ivory-200 rounded-lg outline-none focus:border-gold text-sm" />
-        </div>
-        <div className="flex gap-4">
-            <select className="px-6 py-3 bg-white border border-ivory-300 rounded-lg text-xs font-bold uppercase tracking-widest text-obsidian-600 outline-none">
-                <option>All Categories</option>
-                <option>Watches</option>
-                <option>Solid Gold</option>
-            </select>
-        </div>
+      {/* SEARCH BAR */}
+      <div className="bg-white p-2 rounded-full border border-gray-100 shadow-sm relative">
+        <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
+        <input 
+          type="text" 
+          placeholder="Search by name, SKU, or brand..." 
+          value={searchQuery} 
+          onChange={(e) => setSearchQuery(e.target.value)} 
+          className="w-full pl-14 pr-6 py-3 bg-transparent outline-none text-sm" 
+        />
       </div>
 
-      {/* REGISTRY TABLE */}
-      <div className="bg-white border border-ivory-300 rounded-xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-ivory-300 bg-ivory-50">
-                <th className="p-6 label-caps text-obsidian-400">Identity</th>
-                <th className="p-6 label-caps text-obsidian-400">Category</th>
-                <th className="p-6 label-caps text-obsidian-400">Valuation</th>
-                <th className="p-6 label-caps text-obsidian-400">Stock</th>
-                <th className="p-6 label-caps text-obsidian-400">Actions</th>
+      {/* INVENTORY TABLE */}
+      <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+        <table className="w-full text-left">
+          <thead className="bg-gray-50/50 border-b border-gray-50">
+            <tr>
+              <th className="p-6 text-[10px] font-bold uppercase text-gray-400">Product</th>
+              <th className="p-6 text-[10px] font-bold uppercase text-gray-400">Category</th>
+              <th className="p-6 text-[10px] font-bold uppercase text-gray-400">Price</th>
+              <th className="p-6 text-[10px] font-bold uppercase text-gray-400">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50 font-sans">
+            {filteredProducts.map((p) => (
+              <tr key={p.id} className="group hover:bg-gray-50/50 transition-colors">
+                <td className="p-6 flex items-center gap-4">
+                  <img src={p.images?.[0]} className="w-12 h-16 object-cover rounded bg-gray-100 shadow-sm" alt="thumbnail" />
+                  <div>
+                    <p className="text-xs font-bold text-black uppercase">{p.name}</p>
+                    <p className="text-[9px] text-gray-400 font-bold tracking-tighter">{p.brand} • SKU: {p.sku}</p>
+                  </div>
+                </td>
+                <td className="p-6 text-[9px] font-bold text-gray-500 uppercase tracking-widest">{p.category}</td>
+                <td className="p-6 text-xs font-bold text-black font-sans">${Number(p.price).toLocaleString()}</td>
+                <td className="p-6 flex gap-4 text-gray-300">
+                  <button onClick={() => handleEdit(p)} className="hover:text-gold transition-colors"><Edit size={16} /></button>
+                  <button onClick={() => handleDelete(p.id)} className="hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-ivory-100">
-              {products.map((p) => (
-                <tr key={p.id} className="hover:bg-ivory-50/50 transition-colors">
-                  <td className="p-6">
-                    <div className="flex items-center gap-4">
-                      <img src={p.image} className="w-12 h-14 object-cover rounded border border-ivory-200" alt="" />
-                      <div>
-                        <p className="text-sm font-bold text-obsidian-900 uppercase">{p.name}</p>
-                        <p className="text-[10px] text-obsidian-400 font-mono">SN: {p.serial_number}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-6">
-                    <span className="text-[10px] font-bold text-gold uppercase tracking-widest bg-gold/5 px-2 py-1 rounded-md">{p.category}</span>
-                  </td>
-                  <td className="p-6 text-sm font-bold text-obsidian-900">${Number(p.price).toLocaleString()}</td>
-                  <td className="p-6">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-1.5 h-1.5 rounded-full ${p.is_visible ? 'bg-green-500' : 'bg-red-400'}`} />
-                      <span className="text-[10px] font-bold text-obsidian-400 uppercase">{p.is_visible ? 'Active' : 'Hidden'}</span>
-                    </div>
-                  </td>
-                  <td className="p-6">
-                    <div className="flex gap-4 text-obsidian-300">
-                      <button className="hover:text-gold transition-colors"><Edit size={18} /></button>
-                      <button className="hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      {/* ASSET MODAL */}
+      {/* PRODUCT MODAL */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-obsidian-900/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-5xl bg-white rounded-2xl p-10 md:p-14 overflow-y-auto max-h-[90vh]"
-            >
-              <div className="flex justify-between items-center mb-10 border-b border-ivory-100 pb-6">
-                <h2 className="text-3xl font-medium text-obsidian-900 font-serif italic">New <span className="text-gold">Asset.</span></h2>
-                <button onClick={() => setIsModalOpen(false)} className="text-obsidian-300 hover:text-obsidian-900 transition-colors"><X size={24}/></button>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-md">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="relative w-full max-w-5xl bg-white rounded-3xl p-10 max-h-[90vh] overflow-y-auto shadow-2xl">
+              <div className="flex justify-between items-center mb-10 border-b pb-6">
+                <h2 className="text-2xl font-bold text-black">{editingId ? 'Edit' : 'Add New'} <span className="text-gold font-serif italic">Product</span></h2>
+                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-black"><X size={24}/></button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-10">
-                {/* Media Section */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="md:col-span-3 h-48 bg-ivory-50 rounded-xl border-2 border-dashed border-ivory-200 flex flex-col items-center justify-center cursor-pointer hover:border-gold transition-colors">
-                        <Upload className="text-gold mb-2" size={24} />
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-obsidian-400">Primary Product Image</p>
-                        <input id="image-upload" type="file" className="absolute opacity-0 cursor-pointer" />
-                    </div>
+              <form onSubmit={handleSubmit} className="space-y-12">
+                {/* PHOTO UPLOAD SECTION */}
+                <div className="space-y-4">
+                   <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">Product Photos (Max 3)</label>
+                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                     {previews.map((src, i) => (
+                       <div key={i} className="relative aspect-[3/4] bg-gray-100 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                         <img src={src} className="w-full h-full object-cover" alt="preview" />
+                         <button type="button" onClick={() => removePreview(i)} className="absolute top-2 right-2 p-1 bg-white/80 rounded-full text-red-500 shadow-lg hover:bg-white"><Trash size={12}/></button>
+                       </div>
+                     ))}
+                     {previews.length < 3 && (
+                       <button type="button" onClick={() => fileInputRef.current?.click()} className="aspect-[3/4] border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:border-gold hover:text-gold transition-all">
+                         <Camera size={24} />
+                         <span className="text-[8px] font-bold uppercase mt-2">Upload Photo</span>
+                       </button>
+                     )}
+                   </div>
+                   <input type="file" name="images" multiple hidden ref={fileInputRef} onChange={handleFileChange} accept="image/*" />
                 </div>
 
-                {/* Classification */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <Select label="Category" value={formData.category} options={CATEGORIES} onChange={(v) => setFormData({...formData, category: v, sub_category: SUB_CATEGORIES[v][0]})} />
-                  <Select label="Sub-Category" value={formData.sub_category} options={SUB_CATEGORIES[formData.category]} onChange={(v) => setFormData({...formData, sub_category: v})} />
-                  <Input label="Serial Number" value={formData.serial_number} onChange={(v) => setFormData({...formData, serial_number: v})} />
-                </div>
-
-                {/* Commercials */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <Input label="Asset Name" value={formData.name} onChange={(v) => setFormData({...formData, name: v})} />
-                  <Input label="Price (USD)" value={formData.price} onChange={(v) => setFormData({...formData, price: v})} />
+                  <Input label="Product Name" name="name" defaultValue={formData.name} placeholder="e.g. Rolex Daytona" />
+                  <Input label="Price (USD)" name="price" defaultValue={formData.price} placeholder="75000" />
+                  <Select label="Category" name="category" value={formData.category} options={CATEGORIES} onChange={(v) => setFormData({...formData, category: v})} />
+                  <Input label="SKU / Reference" name="sku" defaultValue={formData.sku} placeholder="Ref-001" />
                 </div>
 
-                {/* Technical specs based on Category */}
-                <div className="p-8 bg-ivory-50 rounded-xl space-y-8">
-                  <div className="flex items-center gap-3">
-                    <ShieldCheck className="text-gold" size={18} />
-                    <p className="label-caps !text-obsidian-900">Technical Attributes</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {formData.category === 'Solid Gold' && (
-                        <>
-                            <Input label="Gold Purity (e.g. 24K)" value={formData.gold_purity} onChange={(v) => setFormData({...formData, gold_purity: v})} />
-                            <Input label="Weight (g)" value={specifications.weight || ''} onChange={(v) => handleSpecChange('weight', v)} />
-                        </>
-                    )}
-                    {formData.category === 'Watches' && (
-                        <>
-                            <Input label="Movement" value={specifications.movement || ''} onChange={(v) => handleSpecChange('movement', v)} />
-                            <Input label="Case Material" value={specifications.case || ''} onChange={(v) => handleSpecChange('case', v)} />
-                            <Input label="Year" value={specifications.year || ''} onChange={(v) => handleSpecChange('year', v)} />
-                        </>
-                    )}
-                    {formData.category === 'Diamonds' && (
-                        <>
-                            <Input label="GIA Report #" value={formData.gia_report} onChange={(v) => setFormData({...formData, gia_report: v})} />
-                            <Input label="Carat Weight" value={formData.carat_weight} onChange={(v) => setFormData({...formData, carat_weight: v})} />
-                            <Input label="Clarity" value={specifications.clarity || ''} onChange={(v) => handleSpecChange('clarity', v)} />
-                        </>
-                    )}
-                  </div>
+                {/* BRAND SELECTION */}
+                <div className="space-y-2">
+                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Brand</label>
+                   <input 
+                     list="brand-list" 
+                     name="brand" 
+                     defaultValue={formData.brand} 
+                     placeholder="Select or type new brand..."
+                     className="w-full bg-white border border-gray-100 rounded-xl px-5 py-3.5 text-sm text-black outline-none focus:border-gold shadow-sm" 
+                   />
+                   <datalist id="brand-list">
+                     {brands.map(b => <option key={b} value={b} />)}
+                   </datalist>
                 </div>
 
-                <button 
-                  disabled={isSubmitting}
-                  className="w-full bg-obsidian-900 text-white py-6 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-gold transition-all shadow-lg flex items-center justify-center gap-3"
-                >
-                  {isSubmitting ? <Loader2 className="animate-spin" size={20}/> : 'Publish to Registry'}
+                {/* CATEGORY SPECIFIC FIELDS */}
+                <div className="p-8 bg-gray-50 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-8 border border-gray-100">
+                  {formData.category === 'Watches' && (
+                    <>
+                      <Select label="Movement" name="movement" defaultValue={formData.movement} options={FILTERS.movements} />
+                      <Input label="Case Material" name="case_material" defaultValue={formData.case_material} placeholder="e.g. Gold, Steel" />
+                    </>
+                  )}
+                  {formData.category === 'Gold' && (
+                    <>
+                      <Select label="Gold Purity" name="gold_purity" defaultValue={formData.gold_purity} options={FILTERS.purities} />
+                      <Input label="Weight (Grams)" name="weight_grams" defaultValue={formData.weight_grams} placeholder="100" />
+                    </>
+                  )}
+                  {formData.category === 'Diamonds' && (
+                    <>
+                      <Select label="Clarity" name="diamond_clarity" defaultValue={formData.diamond_clarity} options={FILTERS.clarities} />
+                      <Select label="Shape" name="shape" defaultValue={formData.shape} options={FILTERS.shapes} />
+                      <Input label="Carat Weight" name="carat_weight" defaultValue={formData.carat_weight} placeholder="2.5" />
+                    </>
+                  )}
+                </div>
+
+                {/* MEDIA UPLOAD SECTION */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t pt-8">
+                   <div className="space-y-3">
+                     <label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-2"><Video size={14}/> Product Video (.mp4)</label>
+                     <input type="file" name="video_file" accept="video/mp4" className="text-[10px] text-gray-400 file:bg-gray-100 file:border-none file:px-4 file:py-2 file:rounded-full file:mr-4 file:cursor-pointer" />
+                     {formData.video_url && <p className="text-[8px] text-gold truncate">Active: {formData.video_url}</p>}
+                   </div>
+                   <div className="space-y-3">
+                     <label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-2"><Cuboid size={14}/> 3D Model (.glb)</label>
+                     <input type="file" name="model_file" accept=".glb" className="text-[10px] text-gray-400 file:bg-gray-100 file:border-none file:px-4 file:py-2 file:rounded-full file:mr-4 file:cursor-pointer" />
+                     {formData.three_d_model && <p className="text-[8px] text-gold truncate">Active: {formData.three_d_model}</p>}
+                   </div>
+                </div>
+
+                <div className="md:col-span-2">
+                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Description</label>
+                   <textarea 
+                     name="description" 
+                     defaultValue={formData.description} 
+                     className="w-full bg-white border border-gray-100 rounded-xl p-5 text-sm min-h-[120px] outline-none focus:border-gold shadow-sm" 
+                   />
+                </div>
+
+                <button disabled={isSubmitting} className="w-full bg-black text-white py-6 rounded-full font-bold uppercase tracking-widest hover:bg-gold transition-all shadow-xl active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3">
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="animate-spin" size={18} />
+                      Saving...
+                    </>
+                  ) : editingId ? 'Update Product' : 'Publish Product'}
                 </button>
               </form>
             </motion.div>
@@ -246,22 +285,33 @@ export default function AdminInventory() {
   )
 }
 
-function Input({ label, value, onChange }: any) {
+function Input({ label, name, defaultValue, placeholder = "" }: any) {
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-bold text-obsidian-400 uppercase tracking-widest ml-1">{label}</label>
-      <input value={value} onChange={(e) => onChange(e.target.value)} className="w-full bg-white border border-ivory-300 rounded-lg px-4 py-3 text-sm text-obsidian-900 outline-none focus:border-gold transition-all" />
+      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">{label}</label>
+      <input 
+        name={name} 
+        defaultValue={defaultValue} 
+        placeholder={placeholder} 
+        className="w-full bg-white border border-gray-100 rounded-xl px-5 py-3.5 text-sm text-black outline-none focus:border-gold transition-all shadow-sm" 
+      />
     </div>
   )
 }
 
-function Select({ label, value, options, onChange }: any) {
-    return (
-      <div className="space-y-2">
-        <label className="text-[10px] font-bold text-obsidian-400 uppercase tracking-widest ml-1">{label}</label>
-        <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full bg-white border border-ivory-300 rounded-lg px-4 py-3 text-sm text-obsidian-900 outline-none focus:border-gold transition-all h-[46px]">
-            {options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
-        </select>
-      </div>
-    )
+function Select({ label, name, value, defaultValue, options, onChange }: any) {
+  return (
+    <div className="space-y-2">
+      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">{label}</label>
+      <select 
+        name={name} 
+        value={value} 
+        defaultValue={defaultValue} 
+        onChange={(e) => onChange?.(e.target.value)} 
+        className="w-full bg-white border border-gray-100 rounded-xl px-5 py-3.5 text-sm text-black outline-none focus:border-gold h-[52px] shadow-sm cursor-pointer"
+      >
+        {options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+      </select>
+    </div>
+  )
 }

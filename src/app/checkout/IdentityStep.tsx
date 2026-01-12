@@ -1,123 +1,184 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { ArrowRight, ShieldCheck, User, Globe, Phone, Loader2, ChevronLeft, Check } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { ArrowRight, ShieldCheck, User, Globe, Phone, Loader2, Mail, ChevronDown } from 'lucide-react'
+import { createClient } from '@/lib/supabase'
 import { motion } from 'framer-motion'
 
-export default function IdentityStep({ onBack }: { onBack: () => void }) {
-  const [profile, setProfile] = useState<any>(null)
+// Comprehensive Global Country List
+const ALL_COUNTRIES = [
+  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua & Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
+  "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi",
+  "Cambodia", "Cameroon", "Canada", "Cape Verde", "Central African Rep", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic",
+  "Denmark", "Djibouti", "Dominica", "Dominican Republic",
+  "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Ethiopia",
+  "Fiji", "Finland", "France",
+  "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana",
+  "Haiti", "Honduras", "Hungary",
+  "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Ivory Coast",
+  "Jamaica", "Japan", "Jordan",
+  "Kazakhstan", "Kenya", "Kiribati", "Korea South", "Kosovo", "Kuwait", "Kyrgyzstan",
+  "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg",
+  "Macedonia", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar",
+  "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "Norway",
+  "Oman",
+  "Pakistan", "Palau", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal",
+  "Qatar",
+  "Romania", "Russian Federation", "Rwanda",
+  "St Kitts & Nevis", "St Lucia", "Saint Vincent & the Grenadines", "Samoa", "San Marino", "Sao Tome & Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Swaziland", "Sweden", "Switzerland", "Syria",
+  "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Togo", "Tonga", "Trinidad & Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu",
+  "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan",
+  "Vanuatu", "Vatican City", "Venezuela", "Vietnam",
+  "Yemen",
+  "Zambia", "Zimbabwe"
+];
+
+interface IdentityProps {
+  data: any
+  update: (data: any) => void
+  onNext: () => void
+}
+
+export default function IdentityStep({ data, update, onNext }: IdentityProps) {
+  const supabase = createClient()
   const [loading, setLoading] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        const { data } = await supabase
+        const { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single()
-        setProfile(data)
+        
+        if (profile) {
+          // Sync logic: Only update if the field is currently empty 
+          // (prevents overwriting user's manual changes when navigating back)
+          update({
+            ...data,
+            fullName: data.fullName || profile.full_name || '',
+            email: user.email || '',
+            phone: data.phone || profile.phone || '',
+            country: data.country || profile.country || ''
+          })
+        }
       }
       setLoading(false)
     }
     fetchProfile()
   }, [])
 
-  const handleFinalOrder = async () => {
-    setIsSubmitting(true)
-    // This will trigger the logic we wrote in PaymentStep or handle final redirect
-    // For now, we simulate the final "Place Order" click
-    setTimeout(() => {
-        // Logic to finalize the record in Supabase would go here
-        window.location.href = '/checkout/verification'
-    }, 1500)
-  }
-
   if (loading) return (
-    <div className="h-48 flex flex-col items-center justify-center gap-4">
-      <Loader2 className="text-gold animate-spin" size={32} />
-      <p className="label-caps text-obsidian-400">Preparing Final Review</p>
+    <div className="h-64 flex flex-col items-center justify-center gap-4">
+      <Loader2 className="text-gold animate-spin" size={32} strokeWidth={1.5} />
+      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400 italic">Authenticating Registry</p>
     </div>
   )
 
+  const isFormValid = data.fullName && data.phone && data.country;
+
   return (
-    <div className="space-y-10">
+    <motion.div 
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="space-y-8 md:space-y-10"
+    >
       
-      {/* HEADER & NAVIGATION */}
-      <div className="space-y-6">
+      {/* HEADER */}
+      <div className="space-y-2">
+        <h2 className="text-3xl md:text-5xl font-bold text-obsidian-900 font-serif italic tracking-tight">
+          Client <span className="text-gold not-italic">Identity</span>
+        </h2>
+        <p className="text-gray-500 text-xs md:text-sm max-w-lg leading-relaxed">
+          Verify your personal details for the Lume Vault registry. This must match your official identification for secure personal handover.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+        <IdentityInput 
+          label="Full Legal Name" 
+          value={data.fullName} 
+          onChange={(v: string) => update({...data, fullName: v})} 
+          icon={<User size={14}/>} 
+          placeholder="Enter full name"
+        />
+        <IdentityInput 
+          label="Secure Email" 
+          value={data.email} 
+          disabled={true} 
+          icon={<Mail size={14}/>} 
+        />
+        <IdentityInput 
+          label="Contact Number" 
+          value={data.phone} 
+          onChange={(v: string) => update({...data, phone: v})} 
+          icon={<Phone size={14}/>} 
+          placeholder="+1 (000) 000-0000"
+        />
+
+        {/* COUNTRY SELECTOR: Mobile Optimized */}
+        <div className="space-y-3 group">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400 ml-1 flex items-center gap-2 group-focus-within:text-gold transition-colors">
+            <Globe size={14} className="text-gold" /> Country
+          </label>
+          <div className="relative">
+            <select 
+              value={data.country}
+              onChange={(e) => update({...data, country: e.target.value})}
+              className="w-full bg-white border border-gray-100 rounded-xl px-5 py-4 text-[13px] md:text-xs font-bold text-obsidian-900 uppercase tracking-widest focus:border-gold outline-none shadow-sm appearance-none cursor-pointer transition-all"
+            >
+              <option value="">Select Country</option>
+              {ALL_COUNTRIES.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+          </div>
+        </div>
+      </div>
+
+      {/* SECURITY NOTICE */}
+      <div className="bg-gray-50 p-5 md:p-6 rounded-2xl border border-gray-100 flex gap-4 items-start">
+        <ShieldCheck className="text-gold shrink-0 mt-1" size={20} />
+        <div className="space-y-1">
+          <h4 className="text-[10px] font-bold text-obsidian-900 uppercase tracking-widest">Protocol Secured</h4>
+          <p className="text-[10px] md:text-[11px] text-gray-500 leading-relaxed uppercase tracking-tight">
+            High-valuation assets require verified identity matches. Your data is encrypted and managed via secure Lume Vault protocols.
+          </p>
+        </div>
+      </div>
+
+      {/* ACTION */}
+      <div className="pt-4">
         <button 
-          onClick={onBack} 
-          className="flex items-center gap-2 text-[10px] font-bold text-obsidian-400 hover:text-gold uppercase tracking-widest transition-colors group"
+          onClick={onNext}
+          disabled={!isFormValid}
+          className="w-full bg-black text-white h-[75px] rounded-2xl text-[11px] font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-4 hover:bg-gold hover:text-black transition-all shadow-xl disabled:opacity-20 disabled:grayscale disabled:cursor-not-allowed group active:scale-[0.98]"
         >
-          <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> 
-          Back to Payment
+          Proceed to Logistics <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
         </button>
-        
-        <div className="space-y-2">
-          <h2 className="text-3xl md:text-5xl font-medium text-obsidian-900 font-serif italic tracking-tight">
-            Final <span className="text-gold not-italic">Review</span>
-          </h2>
-          <p className="text-obsidian-600 text-sm max-w-lg leading-relaxed">
-            Please confirm your account details and shipping information below. Once confirmed, your collection will be prepared for transit.
-          </p>
-        </div>
       </div>
-
-      <div className="space-y-8">
-        {/* REVIEW GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <ProfileDisplay label="Full Name" value={profile?.full_name} icon={<User size={14}/>} />
-          <ProfileDisplay label="Country" value={profile?.country} icon={<Globe size={14}/>} />
-          <ProfileDisplay label="Phone" value={profile?.phone} icon={<Phone size={14}/>} />
-          <ProfileDisplay label="Account Status" value="Verified Member" icon={<ShieldCheck size={14}/>} />
-        </div>
-
-        {/* SHIPMENT PREPARATION CARD */}
-        <div className="bg-ivory-50 p-8 rounded-xl border border-ivory-200 flex gap-4 items-start">
-          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-gold/20 shadow-sm shrink-0">
-             <Check className="text-gold" size={18} />
-          </div>
-          <div className="space-y-1">
-            <h4 className="text-[10px] font-bold text-obsidian-900 uppercase tracking-widest">Order Ready for Dispatch</h4>
-            <p className="text-[11px] text-obsidian-500 leading-relaxed">
-              Upon clicking "Place Order," our curators will begin the authentication and packaging process. You will receive a tracking number via secure email within 24 hours.
-            </p>
-          </div>
-        </div>
-
-        {/* FINAL ACTION */}
-        <div className="pt-4 space-y-6">
-          <button 
-            onClick={handleFinalOrder}
-            disabled={isSubmitting}
-            className="w-full bg-obsidian-900 text-white h-[70px] rounded-lg text-sm font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-4 hover:bg-gold transition-all duration-300 shadow-lg disabled:opacity-50"
-          >
-            {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <>Place Order <ArrowRight size={18} /></>}
-          </button>
-          
-          <p className="text-[10px] text-obsidian-300 text-center uppercase tracking-widest leading-relaxed">
-            Authorized signature required for all Lume Vault deliveries.
-          </p>
-        </div>
-      </div>
-    </div>
+    </motion.div>
   )
 }
 
-function ProfileDisplay({ label, value, icon }: { label: string, value: string, icon: any }) {
+function IdentityInput({ label, value, onChange, icon, placeholder, disabled = false }: any) {
   return (
-    <div className="space-y-2">
-      <label className="text-[10px] font-bold uppercase tracking-widest text-obsidian-400 ml-1 flex items-center gap-2">
-        {React.cloneElement(icon, { size: 14, className: "text-gold" })} {label}
+    <div className="space-y-3 group">
+      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400 ml-1 flex items-center gap-2 group-focus-within:text-gold transition-colors">
+        <span className="text-gold">{icon}</span> {label}
       </label>
-      <div className="w-full bg-white border border-ivory-200 rounded-lg px-5 py-4 shadow-sm">
-         <p className="text-obsidian-900 font-bold uppercase tracking-widest text-xs">
-           {value || 'Not Disclosed'}
-         </p>
-      </div>
+      <input 
+        type="text"
+        value={value}
+        disabled={disabled}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        /* text-[16px] prevents iOS auto-zoom on focus */
+        className="w-full bg-white border border-gray-100 rounded-xl px-5 py-4 text-[16px] md:text-xs font-bold text-obsidian-900 uppercase tracking-widest focus:border-gold outline-none shadow-sm disabled:bg-gray-50 disabled:text-gray-400 transition-all"
+      />
     </div>
   )
 }

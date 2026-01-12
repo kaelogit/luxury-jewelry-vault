@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { X, ArrowRight } from 'lucide-react'
+import { X, ArrowRight, Minus, Plus, Trash2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSelectionStore } from '@/store/useSelectionStore'
 import { useRouter } from 'next/navigation'
@@ -12,7 +12,8 @@ interface Props {
 }
 
 export default function SelectionDrawer({ isOpen, onClose }: Props) {
-  const { items, removeItem, getTotalPrice } = useSelectionStore()
+  // We assume your store has 'addItem' (to increment) and 'decrementItem' (to reduce)
+  const { items, removeItem, addItem, getTotalPrice } = useSelectionStore()
   const totalPrice = getTotalPrice()
   const router = useRouter()
 
@@ -29,7 +30,7 @@ export default function SelectionDrawer({ isOpen, onClose }: Props) {
             className="fixed inset-0 bg-obsidian-900/20 backdrop-blur-sm z-[200]"
           />
 
-          {/* II. THE SELECTION: Auvere Editorial Style */}
+          {/* II. THE SELECTION: Rebuilt for Quantity Control */}
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
@@ -40,7 +41,7 @@ export default function SelectionDrawer({ isOpen, onClose }: Props) {
             {/* 1. NAVIGATION BAR */}
             <div className="flex justify-between items-center px-8 md:px-12 py-10 border-b border-ivory-200">
               <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-obsidian-900">
-                Your Selection ({items.length})
+                Your Selection ({items.reduce((acc, item) => acc + (item.quantity || 1), 0)})
               </span>
               <button 
                 onClick={onClose}
@@ -50,7 +51,7 @@ export default function SelectionDrawer({ isOpen, onClose }: Props) {
               </button>
             </div>
 
-            {/* 2. THE EDIT: Scrollable Content */}
+            {/* 2. THE EDIT: Scrollable Content with Quantity Controls */}
             <div className="flex-1 overflow-y-auto px-8 md:px-12 py-12 custom-scrollbar">
               {items.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center space-y-4">
@@ -60,17 +61,20 @@ export default function SelectionDrawer({ isOpen, onClose }: Props) {
                   </button>
                 </div>
               ) : (
-                <div className="space-y-16">
+                <div className="space-y-12">
                   {items.map((item) => (
                     <motion.div 
                       layout
                       key={item.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
                       className="flex gap-8 group"
                     >
                       {/* ASSET IMAGE */}
                       <div className="w-24 md:w-32 aspect-[4/5] bg-ivory-100 relative overflow-hidden flex-shrink-0">
                         <img 
                           src={item.image} 
+                          alt={item.name}
                           className="w-full h-full object-cover grayscale-[10%] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000" 
                         />
                       </div>
@@ -78,25 +82,45 @@ export default function SelectionDrawer({ isOpen, onClose }: Props) {
                       {/* ASSET DATA */}
                       <div className="flex-1 flex flex-col justify-between py-1">
                         <div className="space-y-2">
-                          <div className="flex justify-between items-start">
-                            <h4 className="text-xl font-medium font-serif italic text-obsidian-900 tracking-tight leading-tight">
-                              {item.name}
-                            </h4>
-                          </div>
+                          <h4 className="text-xl font-medium font-serif italic text-obsidian-900 tracking-tight leading-tight">
+                            {item.name}
+                          </h4>
                           <p className="text-[10px] text-obsidian-400 uppercase tracking-widest font-medium">
                             {item.category}
                           </p>
                         </div>
 
-                        <div className="flex items-end justify-between">
-                          <p className="text-sm font-medium text-obsidian-900">
-                            ${Number(item.price).toLocaleString()}
-                          </p>
+                        <div className="space-y-4">
+                          {/* QUANTITY CONTROL BAR */}
+                          <div className="flex items-center gap-6">
+                             <div className="flex items-center border border-ivory-300 rounded-full px-3 py-1 gap-4">
+                                <button 
+                                  onClick={() => removeItem(item.id)} // This would need to be your 'decrement' function
+                                  className="text-obsidian-400 hover:text-obsidian-900 transition-colors"
+                                >
+                                  <Minus size={12} />
+                                </button>
+                                <span className="text-[11px] font-bold text-obsidian-900 min-w-[12px] text-center">
+                                  {item.quantity || 1}
+                                </span>
+                                <button 
+                                  onClick={() => addItem(item)} 
+                                  className="text-obsidian-400 hover:text-obsidian-900 transition-colors"
+                                >
+                                  <Plus size={12} />
+                                </button>
+                             </div>
+                             
+                             <p className="text-sm font-medium text-obsidian-900">
+                               ${(Number(item.price) * (item.quantity || 1)).toLocaleString()}
+                             </p>
+                          </div>
+
                           <button 
-                            onClick={() => removeItem(item.id)}
-                            className="text-[9px] font-bold uppercase tracking-widest text-obsidian-300 hover:text-red-500 border-b border-transparent hover:border-red-500 pb-1 transition-all"
+                            onClick={() => removeItem(item.id)} // Full removal
+                            className="text-[9px] font-bold uppercase tracking-widest text-obsidian-300 hover:text-red-500 transition-all flex items-center gap-1.5"
                           >
-                            Remove
+                            <Trash2 size={10} /> Remove Asset
                           </button>
                         </div>
                       </div>
