@@ -44,7 +44,7 @@ export default function AdminInventory() {
 
   async function fetchProducts() {
     setLoading(true)
-    const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false })
+    const supabase = createClient(); const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false })
     if (data) {
       setProducts(data)
       const uniqueBrands: any = Array.from(new Set(data.map(p => p.brand).filter(Boolean)))

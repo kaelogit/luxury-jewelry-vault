@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
-import { Send, ShieldCheck, Lock, Loader2, Fingerprint, Globe } from 'lucide-react'
+import { createClient } from '@/lib/supabase' // AUDIT FIX: Using the instance factory
+import { Send, ShieldCheck, Loader2, MessageSquare, Clock, Sparkles } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface Props {
@@ -11,6 +11,7 @@ interface Props {
 }
 
 export default function ConciergeChat({ threadId, currentUserId }: Props) {
+  const supabase = createClient() // FIX: Standard factory initialization for Next.js 15
   const [messages, setMessages] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
@@ -20,7 +21,7 @@ export default function ConciergeChat({ threadId, currentUserId }: Props) {
     if (!threadId) return
     fetchMessages()
 
-    // I. REALTIME HANDSHAKE: Listening to the specific thread
+    // I. LIVE DIALOGUE SYNC: Real-time connection to the private thread
     const channel = supabase
       .channel(`thread-${threadId}`)
       .on('postgres_changes', { 
@@ -37,6 +38,7 @@ export default function ConciergeChat({ threadId, currentUserId }: Props) {
   }, [threadId])
 
   useEffect(() => {
+    // Smooth transition to the latest entry
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
@@ -67,94 +69,106 @@ export default function ConciergeChat({ threadId, currentUserId }: Props) {
       }
     ])
 
-    if (error) console.error("Secure Channel Failure", error)
+    if (error) console.error("Dialogue delivery failure:", error)
   }
 
   return (
-    <div className="flex flex-col h-[700px] bg-white border border-ivory-300 rounded-[3.5rem] overflow-hidden shadow-2xl relative">
-      {/* Background Security Watermark */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
-        <ShieldCheck size={400} className="text-obsidian-900" />
+    <div className="flex flex-col h-[750px] bg-white border border-gray-100 rounded-[2.5rem] overflow-hidden shadow-2xl relative">
+      
+      {/* Background Aesthetic: Subtler than the heavy watermark */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none">
+        <Sparkles size={400} className="text-gold" />
       </div>
 
-      {/* HEADER: Institutional Protocol */}
-      <header className="p-8 border-b border-ivory-100 bg-white/80 backdrop-blur-xl flex justify-between items-center relative z-10">
+      {/* HEADER: High-End Boutique Dialogue */}
+      <header className="px-8 py-6 border-b border-gray-50 bg-white/90 backdrop-blur-md flex justify-between items-center relative z-10">
         <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="w-10 h-10 bg-ivory-50 rounded-xl flex items-center justify-center text-gold border border-gold/10">
-               <Fingerprint size={20} />
+            <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gold border border-gold/10">
+               <MessageSquare size={22} strokeWidth={1.5} />
             </div>
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-gold rounded-full border-2 border-white animate-pulse" />
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
           </div>
           <div>
-            <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-obsidian-900 italic leading-none mb-1">Secure Concierge Desk</h4>
+            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em] text-black mb-1">Private Consultant</h4>
             <div className="flex items-center gap-2">
-               <Globe size={10} className="text-gold" />
-               <span className="text-[8px] font-black text-obsidian-300 uppercase tracking-widest">Node: Zurich_Secure_Link</span>
+               <span className="text-[9px] font-medium text-gray-400 uppercase tracking-widest">Active Dialogue</span>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-3 px-4 py-2 bg-ivory-50 rounded-full border border-ivory-200">
-          <Lock size={10} className="text-gold" />
-          <span className="text-[8px] font-black uppercase tracking-widest text-obsidian-400">AES-256 E2E</span>
+        <div className="flex items-center gap-3 px-5 py-2.5 bg-gray-50 rounded-full border border-gray-100">
+          <ShieldCheck size={14} className="text-gold" />
+          <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Verified Secure</span>
         </div>
       </header>
 
       {/* DIALOGUE FEED */}
-      <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar relative z-10">
+      <div className="flex-1 overflow-y-auto px-6 md:px-10 py-10 space-y-8 custom-scrollbar relative z-10 bg-gray-50/20">
         {loading ? (
-          <div className="h-full flex flex-col items-center justify-center gap-6">
-            <Loader2 className="animate-spin text-gold" size={32} />
-            <p className="text-[10px] text-obsidian-300 uppercase tracking-[0.5em] font-black italic">Decrypting Registry...</p>
+          <div className="h-full flex flex-col items-center justify-center gap-4">
+            <Loader2 className="animate-spin text-gold" size={32} strokeWidth={1.5} />
+            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Synchronizing history...</p>
           </div>
         ) : (
-          messages.map((msg) => {
-            const isMe = msg.sender_id === currentUserId
-            return (
-              <motion.div 
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                key={msg.id} 
-                className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className={`max-w-[75%] space-y-3`}>
-                  <div className={`p-6 rounded-[2.5rem] text-[13px] italic leading-relaxed shadow-sm ${
-                    isMe 
-                      ? 'bg-gold text-white rounded-br-none font-medium' 
-                      : 'bg-ivory-50 text-obsidian-900 rounded-bl-none border border-ivory-200'
-                  }`}>
-                    {msg.content}
-                  </div>
-                  <p className={`text-[9px] font-black uppercase tracking-widest px-4 ${
-                    isMe ? 'text-right text-obsidian-200' : 'text-left text-obsidian-300'
-                  }`}>
-                    {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+          <>
+            {messages.length === 0 && (
+                <div className="text-center py-20 opacity-30">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.3em]">Start your conversation below</p>
                 </div>
-              </motion.div>
-            )
-          })
+            )}
+            {messages.map((msg) => {
+                const isMe = msg.sender_id === currentUserId
+                return (
+                <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    key={msg.id} 
+                    className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                >
+                    <div className={`max-w-[85%] md:max-w-[70%] space-y-2`}>
+                    <div className={`p-5 rounded-2xl text-[14px] leading-relaxed shadow-sm ${
+                        isMe 
+                        ? 'bg-black text-white rounded-br-none font-medium' 
+                        : 'bg-white text-black rounded-bl-none border border-gray-100'
+                    }`}>
+                        {msg.content}
+                    </div>
+                    <div className={`flex items-center gap-2 px-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                        <Clock size={10} className="text-gray-300" />
+                        <p className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter">
+                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                    </div>
+                    </div>
+                </motion.div>
+                )
+            })}
+          </>
         )}
         <div ref={scrollRef} />
       </div>
 
-      {/* INPUT COMMAND */}
-      <form onSubmit={sendMessage} className="p-8 bg-white border-t border-ivory-100 relative z-10">
-        <div className="relative flex items-center max-w-4xl mx-auto">
+      {/* INPUT: Clean & Minimalist */}
+      <form onSubmit={sendMessage} className="p-6 md:p-10 bg-white border-t border-gray-100 relative z-10">
+        <div className="relative flex items-center max-w-5xl mx-auto">
           <input 
             type="text" 
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Transmit secure protocol message..."
-            className="w-full bg-ivory-50 border border-ivory-300 rounded-[2rem] px-8 py-6 text-obsidian-900 text-sm italic outline-none focus:border-gold transition-all placeholder:text-ivory-300 shadow-inner"
+            placeholder="Type your message..."
+            className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-8 py-5 text-black text-sm outline-none focus:border-gold transition-all placeholder:text-gray-300"
           />
           <button 
             type="submit"
-            className="absolute right-3 p-5 bg-obsidian-900 text-gold rounded-full hover:bg-gold hover:text-white transition-all shadow-xl active:scale-95 group"
+            disabled={!newMessage.trim()}
+            className="absolute right-3 p-4 bg-black text-gold rounded-xl hover:bg-gold hover:text-black transition-all shadow-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group"
           >
-            <Send size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-500" />
+            <Send size={18} className="group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
+        <p className="text-center mt-4 text-[9px] font-bold text-gray-300 uppercase tracking-widest">
+            A consultant will respond shortly
+        </p>
       </form>
     </div>
   )

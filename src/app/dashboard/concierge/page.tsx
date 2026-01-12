@@ -8,12 +8,13 @@ import {
    Menu, LayoutDashboard, ShoppingBag, User, Settings, Lock, Loader2, LogOut
 } from 'lucide-react'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Toaster } from 'sonner' 
 import LiveNotifications from '@/components/ui/LiveNotifications'
 
 export default function ConciergePage() {
+  const supabase = createClient()
   const router = useRouter()
   const [threads, setThreads] = useState<any[]>([])
   const [selectedThread, setSelectedThread] = useState<any>(null)

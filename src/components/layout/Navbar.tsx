@@ -1,16 +1,18 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation' // Added for deep sync
-import { ShoppingBag, Menu, X, ArrowRight, User, Search, ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
+import { usePathname, useSearchParams } from 'next/navigation'
+import { ShoppingBag, Menu, X, User, Search, ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
 import SelectionDrawer from '../ui/SelectionDrawer'
 import { useUIStore } from '@/store/useUIStore'
 import { useSelectionStore } from '@/store/useSelectionStore'
 import { motion, AnimatePresence } from 'framer-motion'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase' // FIX: Factory import
 
-export default function Navbar() {
+// SEARCH COMPONENT INNER (To handle Suspense boundary for useSearchParams)
+function NavbarContent() {
+  const supabase = createClient() // AUDIT FIX: Initialize factory properly
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isShopOpen, setIsShopOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -27,7 +29,6 @@ export default function Navbar() {
   const items = useSelectionStore((state) => state.items)
   const itemCount = items.length
 
-  // HELPER: Closes all overlays when a link is clicked
   const closeAll = () => {
     setIsMobileMenuOpen(false)
     setIsShopOpen(false)
@@ -35,7 +36,6 @@ export default function Navbar() {
     setIsMobileShopOpen(false)
   }
 
-  // Effect: Close menus when the URL changes (e.g. clicking from Diamonds to Gold)
   useEffect(() => {
     closeAll()
   }, [pathname, searchParams])
@@ -53,7 +53,7 @@ export default function Navbar() {
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [supabase.auth])
 
   // SEARCH LOGIC
   useEffect(() => {
@@ -62,24 +62,22 @@ export default function Navbar() {
         setIsSearching(true)
         const { data, error } = await supabase
           .from('products')
-          .select('id, name, price, category, images')
+          .select('id, name, price, category, images, slug')
           .ilike('name', `%${searchQuery}%`)
           .limit(5)
         
-        if (!error) setSearchResults(data)
+        if (!error) setSearchResults(data || [])
         setIsSearching(false)
       } else {
         setSearchResults([])
       }
     }, 400)
     return () => clearTimeout(delayDebounceFn)
-  }, [searchQuery])
+  }, [searchQuery, supabase])
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        closeAll()
-      }
+      if (e.key === 'Escape') closeAll()
     }
     window.addEventListener('keydown', handleEsc)
     return () => window.removeEventListener('keydown', handleEsc)
@@ -156,7 +154,7 @@ export default function Navbar() {
                       <div className="space-y-6">
                         <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-gold border-b border-ivory-200 pb-2">Experience</p>
                         <div className="flex flex-col gap-4">
-                          <DropdownLink onClick={closeAll} href="/concierge" title="Private Concierge" />
+                          <DropdownLink onClick={closeAll} href="/dashboard/concierge" title="Private Concierge" />
                           <DropdownLink onClick={closeAll} href="/track" title="Vault Logistics" />
                         </div>
                       </div>
@@ -205,6 +203,23 @@ export default function Navbar() {
                   <input autoFocus type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search the vault..." className="w-full bg-transparent text-2xl md:text-4xl font-serif italic text-obsidian-900 placeholder:text-ivory-400 focus:outline-none pb-4 border-b border-obsidian-100" />
                   {isSearching ? <Loader2 size={24} className="absolute right-0 top-2 text-gold animate-spin" /> : <Search size={24} className="absolute right-0 top-2 text-gold opacity-50" />}
                 </div>
+                
+                {/* SEARCH RESULTS PREVIEW */}
+                {searchResults.length > 0 && (
+                  <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {searchResults.map((product) => (
+                      <Link key={product.id} href={`/product/${product.slug}`} onClick={closeAll} className="flex gap-4 items-center group">
+                        <div className="w-12 h-12 bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
+                          <img src={product.images?.[0]} alt="" className="w-full h-full object-cover" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-gold uppercase">{product.category}</p>
+                          <h4 className="text-xs font-bold text-black group-hover:text-gold transition-colors uppercase">{product.name}</h4>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
@@ -216,7 +231,7 @@ export default function Navbar() {
         {isMobileMenuOpen && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeAll} className="fixed inset-0 bg-obsidian-900/40 backdrop-blur-sm z-[110]" />
-            <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-white z-[120] flex flex-col shadow-2xl">
+            <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-white z-[120] flex flex-col shadow-2xl">
               <div className="p-6 flex justify-between items-center border-b border-ivory-200">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-gold">Maison Menu</p>
                 <button onClick={closeAll} className="p-2"><X size={24} /></button>
@@ -238,6 +253,12 @@ export default function Navbar() {
                     )}
                   </AnimatePresence>
                 </div>
+                
+                <div className="flex flex-col gap-6 pt-10 border-t border-gray-100">
+                    <Link href="/dashboard" onClick={closeAll} className="text-xl font-bold uppercase tracking-widest text-black flex items-center gap-3">
+                        <User size={20} /> My Account
+                    </Link>
+                </div>
               </div>
             </motion.div>
           </>
@@ -246,6 +267,15 @@ export default function Navbar() {
 
       <SelectionDrawer isOpen={isSelectionDrawerOpen} onClose={closeSelectionDrawer} />
     </>
+  )
+}
+
+// Wrapper for Suspense Boundary
+export default function Navbar() {
+  return (
+    <Suspense fallback={<div className="h-20 bg-white" />}>
+      <NavbarContent />
+    </Suspense>
   )
 }
 

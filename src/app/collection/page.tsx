@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, SlidersHorizontal, ArrowRight, Loader2, Plus } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { createServer } from '@/lib/supabase'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation' // Added for Navbar Sync
@@ -15,7 +15,8 @@ const CATEGORIES = ['All Collections', 'Watches', 'Diamonds', 'Gold']
 const INITIAL_BATCH = 30
 const LOAD_MORE_BATCH = 35
 
-export default function CollectionPage() {
+export default async function CollectionPage() {
+  const supabase = await createServer()
   const searchParams = useSearchParams()
   const router = useRouter()
 

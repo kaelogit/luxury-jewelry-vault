@@ -99,7 +99,7 @@ export default function PaymentSettings() {
   }
 
   async function fetchHistory() {
-    const { data } = await supabase
+    const supabase = createClient(); const { data } = await supabase
       .from('orders')
       .select('id, client_name, total_price, status, created_at, payment_method')
       .order('created_at', { ascending: false })

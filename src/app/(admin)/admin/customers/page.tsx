@@ -48,7 +48,7 @@ export default function CustomerManagement() {
   async function viewCustomerDetails(customer: any) {
     setSelectedCustomer(customer)
     // Fetch the detailed manifest of their order history
-    const { data } = await supabase
+    const supabase = createClient(); const { data } = await supabase
       .from('orders')
       .select('*')
       .eq('user_id', customer.id)

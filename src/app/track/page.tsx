@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react'
 import { 
-  ShieldCheck, MapPin, Package, Clock, 
+  ShieldCheck, Package, 
   Search, Truck, ArrowRight, Loader2, CheckCircle2
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase' // FIX: Use createClient for 'use client' files
 
 // THE PERFECT LINE: User-facing milestones
 const USER_STAGES = [
@@ -16,6 +16,7 @@ const USER_STAGES = [
 ]
 
 export default function GlobalTracking() {
+  const supabase = createClient() // FIX: Initialize the client properly
   const [orderId, setOrderId] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [orderData, setOrderData] = useState<any>(null)
@@ -29,7 +30,7 @@ export default function GlobalTracking() {
     const channel = supabase
       .channel(`user-track-${orderData.id}`)
       .on('postgres_changes', { 
-        event: '*', 
+        event: 'UPDATE', 
         schema: 'public', 
         table: 'orders',
         filter: `id=eq.${orderData.id}` 
@@ -46,8 +47,10 @@ export default function GlobalTracking() {
       })
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
-  }, [orderData?.id])
+    return () => { 
+      supabase.removeChannel(channel) 
+    }
+  }, [orderData?.id, supabase])
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,75 +61,79 @@ export default function GlobalTracking() {
 
     const cleanId = orderId.trim()
 
-    // 1. Fetch Order (Master Status)
-    const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .select('*')
-        .or(`id.eq.${cleanId},tracking_number.ilike.${cleanId}`)
-        .maybeSingle()
+    try {
+      // 1. Fetch Order (Master Status)
+      const { data: order, error: orderError } = await supabase
+          .from('orders')
+          .select('*')
+          .or(`id.eq.${cleanId},tracking_number.ilike.${cleanId}`)
+          .maybeSingle()
 
-    if (order && !orderError) {
-        setOrderData(order)
-        
-        // 2. Fetch Latest Milestone only (The "Where am I now?" data)
-        const { data: log } = await supabase
-            .from('delivery_logs')
-            .select('*')
-            .eq('order_id', order.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-        
-        setLatestLog(log)
-    } 
-    // 3. Fallback for LUME-I7CWE1ZM
-    else if (cleanId.toUpperCase() === 'LUME-I7CWE1ZM') {
-        setOrderData({ tracking_number: 'LUME-I7CWE1ZM', status: 'dispatched' })
-        setLatestLog({ milestone: 'In Transit to Local Vault', location: 'Zurich Hub' })
-    } else {
-        setError('Tracking number not found in our secure registry.')
+      if (order && !orderError) {
+          setOrderData(order)
+          
+          // 2. Fetch Latest Milestone only
+          const { data: log } = await supabase
+              .from('delivery_logs')
+              .select('*')
+              .eq('order_id', order.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+          
+          setLatestLog(log)
+      } 
+      // 3. Static fallback for demonstration/fallback
+      else if (cleanId.toUpperCase() === 'LUME-I7CWE1ZM') {
+          setOrderData({ id: 'fallback', tracking_number: 'LUME-I7CWE1ZM', status: 'dispatched' })
+          setLatestLog({ milestone: 'In Transit to Local Vault', location: 'Zurich Hub' })
+      } else {
+          setError('Tracking number not found in our secure registry.')
+      }
+    } catch (err) {
+      setError('A connection error occurred. Please try again.')
+    } finally {
+      setIsSearching(false)
     }
-    
-    setIsSearching(false)
   }
 
   return (
-    <main className="min-h-screen bg-ivory-100 pt-32 pb-32 px-6">
+    <main className="min-h-screen bg-ivory-100 pt-32 pb-32 px-6 selection:bg-gold selection:text-white">
       <div className="max-w-4xl mx-auto space-y-16">
         
         {/* I. HEADER */}
         <header className="text-center space-y-6">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[10px] font-black uppercase tracking-[0.4em] text-gold flex justify-center items-center gap-3">
-             <ShieldCheck size={16} /> Secure Tracking
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[10px] font-bold uppercase tracking-[0.4em] text-gold flex justify-center items-center gap-3">
+             <ShieldCheck size={16} strokeWidth={1.5} /> Secure Tracking
           </motion.div>
-          <h1 className="text-6xl md:text-8xl font-medium text-obsidian-900 font-serif italic tracking-tight">
+          <h1 className="text-5xl md:text-7xl font-medium text-obsidian-900 font-serif italic tracking-tight">
             Track <span className="text-gold not-italic">Order.</span>
           </h1>
         </header>
 
         {/* II. INPUT */}
-        <section className="max-w-2xl mx-auto">
+        <section className="max-w-xl mx-auto">
           <form onSubmit={handleSearch} className="relative group">
             <input 
               type="text" 
               placeholder="ENTER TRACKING NUMBER..."
               value={orderId}
               onChange={(e) => setOrderId(e.target.value)}
-              className="w-full bg-white border border-ivory-300 rounded-2xl py-8 px-10 text-obsidian-900 font-bold uppercase outline-none focus:border-gold transition-all shadow-xl"
+              className="w-full bg-white border border-ivory-300 rounded-2xl py-7 px-10 text-obsidian-900 font-bold uppercase outline-none focus:border-gold transition-all shadow-xl placeholder:text-ivory-300"
             />
-            <button className="absolute right-4 top-4 bottom-4 px-8 bg-obsidian-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-gold transition-all flex items-center gap-3">
+            <button className="absolute right-3 top-3 bottom-3 px-8 bg-obsidian-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-gold hover:text-obsidian-900 transition-all flex items-center gap-3">
               {isSearching ? <Loader2 className="animate-spin" size={14}/> : 'Locate'} <ArrowRight size={14} />
             </button>
           </form>
           {error && <p className="text-center mt-6 text-red-500 font-bold uppercase tracking-widest text-[10px]">{error}</p>}
         </section>
 
-        {/* III. THE PERFECT LINE PROGRESSION */}
+        {/* III. PROGRESSION UI */}
         <AnimatePresence>
           {orderData && (
             <motion.div 
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              className="bg-white border border-ivory-300 rounded-[3rem] p-10 md:p-16 shadow-2xl space-y-20"
+              className="bg-white border border-ivory-300 rounded-3xl p-10 md:p-16 shadow-2xl space-y-20"
             >
                 {/* PROGRESS BAR */}
                 <div className="relative">
@@ -145,18 +152,18 @@ export default function GlobalTracking() {
 
                   <div className="relative flex justify-between">
                     {USER_STAGES.map((stage) => {
-                      const isActive = (stage.id === 'confirmed') || 
+                      const isComplete = (stage.id === 'confirmed') || 
                                        (stage.id === 'dispatched' && (orderData.status === 'dispatched' || orderData.status === 'delivered')) ||
                                        (stage.id === 'delivered' && orderData.status === 'delivered');
                       
                       return (
-                        <div key={stage.id} className="flex flex-col items-center gap-4 bg-white px-4">
-                          <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-1000 ${
-                            isActive ? 'bg-gold border-gold text-white scale-110' : 'bg-white border-ivory-200 text-ivory-300'
+                        <div key={stage.id} className="flex flex-col items-center gap-4 bg-white px-2 md:px-4">
+                          <div className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all duration-1000 ${
+                            isComplete ? 'bg-black border-black text-gold scale-110' : 'bg-white border-ivory-200 text-ivory-300'
                           }`}>
                             {stage.icon}
                           </div>
-                          <p className={`text-[9px] font-black uppercase tracking-widest ${isActive ? 'text-obsidian-900' : 'text-ivory-300'}`}>
+                          <p className={`text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-center ${isComplete ? 'text-obsidian-900' : 'text-ivory-300'}`}>
                             {stage.label}
                           </p>
                         </div>
@@ -165,24 +172,24 @@ export default function GlobalTracking() {
                   </div>
                 </div>
 
-                {/* CURRENT STATUS BOX */}
-                <div className="bg-ivory-50 rounded-[2rem] p-10 flex flex-col md:flex-row justify-between items-center gap-8">
+                {/* STATUS DETAILS */}
+                <div className="bg-ivory-50 rounded-2xl p-8 md:p-12 flex flex-col md:flex-row justify-between items-center gap-8">
                   <div className="space-y-2 text-center md:text-left">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-gold">Current Location</p>
-                    <h3 className="text-3xl font-serif italic text-obsidian-900">
-                      {latestLog?.location || 'Processing Center'}
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-gold">Current Location</p>
+                    <h3 className="text-2xl md:text-3xl font-serif italic text-obsidian-900">
+                      {latestLog?.location || 'Logistics Center'}
                     </h3>
-                    <p className="text-[10px] text-obsidian-400 font-bold uppercase tracking-[0.2em]">
-                      Update: {latestLog?.milestone || 'Preparing for Dispatch'}
+                    <p className="text-[10px] text-obsidian-400 font-bold uppercase tracking-widest">
+                      {latestLog?.milestone || 'Processing Shipment'}
                     </p>
                   </div>
                   
-                  <div className="h-20 w-[1px] bg-ivory-200 hidden md:block" />
+                  <div className="h-16 w-[1px] bg-ivory-200 hidden md:block" />
 
                   <div className="space-y-1 text-center md:text-right">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-obsidian-300">Tracking Reference</p>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-obsidian-300">Reference</p>
                     <p className="text-sm font-mono font-bold text-obsidian-900 uppercase">
-                      {orderData.tracking_number || orderData.id.slice(0, 8)}
+                      {orderData.tracking_number || 'LUME-PENDING'}
                     </p>
                   </div>
                 </div>

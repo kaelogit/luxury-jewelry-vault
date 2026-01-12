@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -19,7 +19,7 @@ export default function Home() {
 
   useEffect(() => {
     const fetchAssets = async () => {
-      const { data } = await supabase
+      const supabase = createClient(); const { data } = await supabase
         .from('products')
         .select('*')
         .limit(4)

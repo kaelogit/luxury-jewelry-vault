@@ -29,7 +29,7 @@ export default function GeneralSettings() {
 
   async function fetchBrandSettings() {
     setLoading(true)
-    const { data } = await supabase.from('brand_settings').select('*').eq('id', 1).single()
+    const supabase = createClient(); const { data } = await supabase.from('brand_settings').select('*').eq('id', 1).single()
     if (data) {
       setBrand({
         store_name: data.store_name || "Lume Vault",
