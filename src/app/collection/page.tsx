@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, SlidersHorizontal, ArrowRight, Loader2, Plus } from 'lucide-react'
-import { createServer } from '@/lib/supabase'
+import { createServer } from '@/lib/supabase-server'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation' // Added for Navbar Sync
