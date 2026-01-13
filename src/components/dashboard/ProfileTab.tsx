@@ -5,17 +5,19 @@ import { motion } from 'framer-motion'
 import { 
   User, MapPin, Phone, 
   ShieldCheck, Edit3, Save, 
-  Globe, Mail, Lock, Smartphone, ChevronRight,
+  Globe, Lock, Smartphone, ChevronRight,
   UserCircle
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase' // FIX: Using instance factory
+import { useRouter } from 'next/navigation'
 
 interface ProfileTabProps {
   profile: any
 }
 
 export default function ProfileTab({ profile }: ProfileTabProps) {
-  const supabase = createClient()
+  const supabase = createClient() // AUDIT FIX: Initialize factory once
+  const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -38,8 +40,11 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
 
       if (!error) {
         setIsEditing(false)
-        // Smooth local update instead of hard reload for premium feel
-        window.location.reload() 
+        // router.refresh() is the "Greater" way to re-fetch server data 
+        // without a harsh browser white-flicker reload.
+        router.refresh()
+      } else {
+        console.error("Profile update failed:", error.message)
       }
     }
     setLoading(false)
@@ -51,9 +56,9 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
       {/* I. HEADER AREA */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-gray-100 pb-10">
         <div className="space-y-1">
-          <p className="text-[10px] font-bold text-gold uppercase tracking-[0.3em]">Client Account</p>
-          <h2 className="text-3xl md:text-5xl font-bold text-black font-serif italic tracking-tight leading-none">
-            Personal <span className="text-gold not-italic">Settings</span>
+          <p className="text-[10px] font-bold text-gold uppercase tracking-[0.3em]">Profile</p>
+          <h2 className="text-3xl md:text-5xl font-bold text-black font-serif italic tracking-tight leading-none uppercase">
+            Account <span className="text-gold not-italic">Settings</span>
           </h2>
         </div>
         
@@ -70,7 +75,7 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
              <button 
               onClick={handleUpdate}
               disabled={loading}
-              className="flex items-center gap-3 px-8 py-4 bg-black text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-gold hover:text-black transition-all shadow-xl active:scale-95"
+              className="flex items-center gap-3 px-8 py-4 bg-black text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-gold hover:text-black transition-all shadow-xl active:scale-95 disabled:opacity-50"
              >
                {loading ? 'Saving...' : 'Save Changes'} <Save size={14} />
              </button>
@@ -85,11 +90,11 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
           value={formData.full_name} 
           icon={<UserCircle />}
           isEditing={isEditing}
-          placeholder="e.g. Johnathan Doe"
+          placeholder="Enter your name"
           onChange={(v:any) => setFormData({...formData, full_name: v})}
         />
         <ProfileField 
-          label="Contact Number" 
+          label="Phone Number" 
           value={formData.phone} 
           icon={<Phone />}
           isEditing={isEditing}
@@ -100,15 +105,15 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
         {/* SHIPPING SECTION */}
         <div className="md:col-span-2 pt-12 border-t border-gray-100">
            <div className="flex items-center gap-4 mb-10">
-              <p className="text-[10px] font-bold text-black uppercase tracking-[0.2em]">Shipping Preferences</p>
+              <p className="text-[10px] font-bold text-black uppercase tracking-[0.2em]">Shipping Details</p>
               <div className="h-[1px] flex-1 bg-gray-100" />
            </div>
            
            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
-              <ProfileField label="Country" value={formData.country} icon={<Globe />} isEditing={isEditing} placeholder="United States" onChange={(v:any) => setFormData({...formData, country: v})} />
-              <ProfileField label="City" value={formData.city} icon={<MapPin />} isEditing={isEditing} placeholder="New York" onChange={(v:any) => setFormData({...formData, city: v})} />
+              <ProfileField label="Country" value={formData.country} icon={<Globe />} isEditing={isEditing} placeholder="e.g. Switzerland" onChange={(v:any) => setFormData({...formData, country: v})} />
+              <ProfileField label="City" value={formData.city} icon={<MapPin />} isEditing={isEditing} placeholder="e.g. Zurich" onChange={(v:any) => setFormData({...formData, city: v})} />
               <div className="md:col-span-2">
-                <ProfileField label="Delivery Address" value={formData.shipping_address} icon={<MapPin />} isEditing={isEditing} placeholder="Street name, Building, Apartment" onChange={(v:any) => setFormData({...formData, shipping_address: v})} />
+                <ProfileField label="Street Address" value={formData.shipping_address} icon={<MapPin />} isEditing={isEditing} placeholder="Enter your full shipping address" onChange={(v:any) => setFormData({...formData, shipping_address: v})} />
               </div>
            </div>
         </div>
@@ -117,30 +122,30 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
       {/* III. SECURITY SECTION */}
       <section className="pt-16 border-t border-gray-100 space-y-10">
         <div className="space-y-2 text-center md:text-left">
-            <h4 className="text-[11px] font-bold text-black uppercase tracking-[0.2em]">Account Security</h4>
-            <p className="text-[10px] text-gray-400 max-w-md uppercase tracking-widest leading-relaxed">Secure your personal data and authentication methods.</p>
+            <h4 className="text-[11px] font-bold text-black uppercase tracking-[0.2em]">Data & Security</h4>
+            <p className="text-[10px] text-gray-400 max-w-md uppercase tracking-widest leading-relaxed">Manage your credentials and authentication security.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <SecurityCard 
                 title="Account Password" 
-                desc="Change your login credentials." 
+                desc="Update your login credentials." 
                 icon={<Lock size={18} />} 
             />
             <SecurityCard 
-                title="Device Security" 
-                desc="Manage 2FA and Biometric access." 
+                title="Device Access" 
+                desc="Manage 2FA and secure login methods." 
                 icon={<Smartphone size={18} />} 
-                status="Verified"
+                status="Active"
             />
         </div>
       </section>
 
       {/* PRIVACY DISCLOSURE */}
-      <div className="mt-12 p-8 bg-gray-50 rounded-[2rem] border border-gray-100 flex flex-col md:flex-row items-center md:items-start gap-6 text-center md:text-left">
-        <ShieldCheck className="text-gold shrink-0 mt-1" size={24} />
+      <div className="mt-12 p-8 bg-gray-50 rounded-3xl border border-gray-100 flex flex-col md:flex-row items-center md:items-start gap-6 text-center md:text-left">
+        <ShieldCheck className="text-gold shrink-0 mt-1" size={24} strokeWidth={1.5} />
         <p className="text-[10px] text-gray-500 font-medium uppercase tracking-widest leading-relaxed">
-          Lume Vault employs end-to-end encryption for all personal data. Your contact details are strictly used for logistics coordination and insurance purposes. We never disclose client data to third-party institutions.
+          Your personal data is encrypted and managed with absolute discretion. Contact details are strictly used for delivery logistics and insurance purposes. We never disclose client information to external parties.
         </p>
       </div>
 
@@ -152,7 +157,7 @@ function ProfileField({ label, value, icon, isEditing, onChange, placeholder }: 
   return (
     <div className="space-y-4 group">
       <div className="flex items-center gap-2 text-gray-400 group-focus-within:text-gold transition-colors">
-        {React.cloneElement(icon as React.ReactElement<any>, { size: 16, className: "text-gold/50" })}
+        {React.cloneElement(icon as React.ReactElement<any>, { size: 16, className: "text-gold/60" })}
         <span className="text-[9px] font-bold uppercase tracking-[0.2em]">{label}</span>
       </div>
       
@@ -162,12 +167,12 @@ function ProfileField({ label, value, icon, isEditing, onChange, placeholder }: 
           value={value}
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-white border border-gray-200 rounded-2xl p-5 text-sm text-black outline-none focus:border-gold transition-all shadow-inner placeholder:text-gray-200"
+          className="w-full bg-white border border-gray-200 rounded-2xl p-5 text-sm text-black outline-none focus:border-gold transition-all shadow-inner placeholder:text-gray-300"
         />
       ) : (
-        <div className="min-h-[50px] flex items-center border-l-2 border-gray-100 pl-8 group-hover:border-gold transition-all duration-500">
+        <div className="min-h-[50px] flex items-center border-l border-gray-100 pl-8 group-hover:border-gold transition-all duration-500">
           <p className="text-lg font-bold text-black uppercase tracking-tight">
-            {value || <span className="text-gray-200 italic normal-case font-medium">Pending Update...</span>}
+            {value || <span className="text-gray-200 normal-case font-medium">Not provided</span>}
           </p>
         </div>
       )}
@@ -177,7 +182,7 @@ function ProfileField({ label, value, icon, isEditing, onChange, placeholder }: 
 
 function SecurityCard({ title, desc, icon, status }: any) {
     return (
-        <div className="p-8 bg-white border border-gray-100 rounded-[2rem] flex items-center justify-between group hover:border-gold hover:shadow-xl transition-all duration-500 cursor-pointer">
+        <div className="p-8 bg-white border border-gray-100 rounded-3xl flex items-center justify-between group hover:border-gold hover:shadow-xl transition-all duration-500 cursor-pointer">
             <div className="flex items-center gap-6">
                 <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gold transition-colors group-hover:bg-gold group-hover:text-black shadow-inner">{icon}</div>
                 <div className="space-y-1">

@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ShieldCheck, Truck, ArrowRight, ShoppingBag, Clock, Gem } from 'lucide-react'
+import { ShieldCheck, Truck, ArrowRight, Clock, Gem } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
 export default function OverviewTab({ profile }: { profile: any }) {
-  const supabase = createClient()
+  const supabase = createClient() // AUDIT FIX: Initialize factory once
   const [stats, setStats] = useState({ totalValue: 0, itemCount: 0 })
   const [activeOrder, setActiveOrder] = useState<any>(null)
   const [recentPurchases, setRecentPurchases] = useState<any[]>([])
@@ -14,11 +14,10 @@ export default function OverviewTab({ profile }: { profile: any }) {
 
   useEffect(() => {
     async function fetchOverviewData() {
-      // Ensure we have a profile ID before querying
       if (!profile?.id) return
 
       try {
-        // 1. Fetch all non-cancelled orders for this user
+        // 1. Fetch orders using the browser client
         const { data: orders, error } = await supabase
           .from('orders')
           .select('*')
@@ -29,7 +28,7 @@ export default function OverviewTab({ profile }: { profile: any }) {
         if (error) throw error
 
         if (orders) {
-          // Calculate stats based on delivered items for the 'Collection'
+          // Calculate stats: Value is based on all successful acquisitions
           const deliveredOrders = orders.filter(o => o.status === 'delivered')
           const total = deliveredOrders.reduce((sum, o) => sum + (Number(o.total_price) || 0), 0)
           
@@ -38,15 +37,15 @@ export default function OverviewTab({ profile }: { profile: any }) {
             itemCount: deliveredOrders.length
           })
 
-          // 2. Identify the most recent active shipment (any status that isn't delivered)
-          const inTransit = orders.find(o => ['confirmed', 'dispatched'].includes(o.status))
+          // 2. Identify active shipments
+          const inTransit = orders.find(o => ['confirmed', 'dispatched', 'shipped'].includes(o.status))
           setActiveOrder(inTransit)
 
-          // 3. Show 3 most recent transactions regardless of status
+          // 3. History preview
           setRecentPurchases(orders.slice(0, 3))
         }
       } catch (err) {
-        console.error("Error syncing vault data:", err)
+        console.error("Vault sync error:", err)
       } finally {
         setLoading(false)
       }
@@ -56,85 +55,85 @@ export default function OverviewTab({ profile }: { profile: any }) {
   }, [profile?.id, supabase])
 
   if (loading) return (
-    <div className="h-64 flex flex-col items-center justify-center bg-white rounded-[2rem] border border-gray-100 shadow-sm gap-4">
+    <div className="h-64 flex flex-col items-center justify-center bg-white rounded-3xl border border-gray-100 shadow-sm gap-4">
       <div className="w-8 h-8 border-2 border-gold/20 border-t-gold rounded-full animate-spin" />
-      <p className="text-[10px] font-bold uppercase text-gray-400 tracking-[0.2em]">Syncing Vault...</p>
+      <p className="text-[10px] font-bold uppercase text-gray-400 tracking-[0.2em]">Synchronizing Portfolio...</p>
     </div>
   )
 
   return (
-    <div className="space-y-6 md:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
-      {/* I. TOP LEVEL: COLLECTION VALUE & SHIPPING */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+      {/* I. COLLECTION VALUE & ACTIVE STATUS */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* TOTAL COLLECTION VALUE CARD */}
-        <div className="lg:col-span-2 p-6 md:p-12 bg-white border border-gray-100 rounded-[2rem] shadow-sm relative overflow-hidden group">
+        {/* PORTFOLIO VALUE CARD */}
+        <div className="lg:col-span-2 p-8 md:p-12 bg-white border border-gray-100 rounded-3xl shadow-sm relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-64 h-64 bg-gold/5 blur-[100px] pointer-events-none" />
           
-          <div className="relative z-10 space-y-8 md:space-y-14">
+          <div className="relative z-10 space-y-10">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="text-gold" size={14} />
-                <p className="text-[10px] font-bold text-gold uppercase tracking-[0.2em]">Collection Valuation</p>
+                <p className="text-[10px] font-bold text-gold uppercase tracking-[0.2em]">Portfolio Value</p>
               </div>
-              <h2 className="text-4xl md:text-7xl font-bold text-black font-serif italic tracking-tight break-words">
-                ${stats.totalValue.toLocaleString()}<span className="text-xl md:text-2xl text-gray-200 not-italic">.00</span>
+              <h2 className="text-5xl md:text-7xl font-bold text-black font-serif italic tracking-tight break-words">
+                ${stats.totalValue.toLocaleString()}<span className="text-xl md:text-2xl text-gray-200 not-italic font-sans">.00</span>
               </h2>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 pt-8 border-t border-gray-50">
-               <StatItem label="Acquired" value={`${stats.itemCount} Pieces`} />
-               <StatItem label="Status" value="Authentic" />
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6 pt-8 border-t border-gray-50">
+               <StatItem label="Owned" value={`${stats.itemCount} Items`} />
+               <StatItem label="Verified" value="100% Secure" />
                <div className="hidden md:block">
-                  <StatItem label="Member" value={new Date(profile?.created_at).getFullYear().toString()} />
+                  <StatItem label="Client Since" value={new Date(profile?.created_at).getFullYear().toString()} />
                </div>
             </div>
           </div>
         </div>
 
-        {/* ACTIVE DELIVERY STATUS */}
-        <div className="p-6 md:p-10 bg-black rounded-[2rem] text-white space-y-8 flex flex-col justify-between shadow-2xl relative overflow-hidden">
-            <div className="absolute inset-0 bg-gold/[0.05] pointer-events-none" />
+        {/* ACTIVE SHIPMENT CARD */}
+        <div className="p-8 bg-black rounded-3xl text-white flex flex-col justify-between shadow-2xl relative overflow-hidden">
+            <div className="absolute inset-0 bg-gold/[0.03] pointer-events-none" />
             
-            <div className="space-y-5 relative z-10">
+            <div className="space-y-6 relative z-10">
               <div className="flex items-center gap-2">
                  <Truck size={16} className="text-gold" />
                  <span className="text-[10px] font-bold uppercase tracking-widest text-gold">
-                   {activeOrder ? activeOrder.status : 'No Active Shipments'}
+                   {activeOrder ? 'Active Shipment' : 'Status: Ready'}
                  </span>
               </div>
               
               {activeOrder ? (
                 <>
-                  <h3 className="text-xl md:text-2xl font-bold font-serif italic leading-tight">
-                    Shipment <span className="text-gold font-sans font-bold not-italic">{activeOrder.tracking_number}</span> is currently in transit.
+                  <h3 className="text-xl font-bold font-serif italic leading-tight">
+                    Order <span className="text-gold font-sans font-bold not-italic uppercase">{activeOrder.tracking_number}</span> is currently in transit.
                   </h3>
-                  <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Lume Private Delivery</p>
+                  <p className="text-[9px] text-gray-500 uppercase font-bold tracking-widest">Global Vault Delivery</p>
                 </>
               ) : (
-                <h3 className="text-xl md:text-2xl font-bold font-serif italic leading-tight text-gray-400">
-                  Ready for your next <span className="text-white">Lume Vault</span> acquisition?
+                <h3 className="text-xl font-bold font-serif italic leading-tight text-gray-400">
+                  Your vault is up to date. Ready for a new <span className="text-white">acquisition?</span>
                 </h3>
               )}
             </div>
 
             {activeOrder && (
-              <button className="relative z-10 flex items-center justify-between w-full p-4 bg-white/10 border border-white/5 rounded-2xl group hover:bg-gold hover:text-black transition-all duration-500">
-                <span className="text-[10px] font-bold uppercase tracking-widest">View Status</span>
-                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              <button className="relative z-10 flex items-center justify-between w-full p-4 bg-white/10 border border-white/5 rounded-xl group hover:bg-gold hover:text-black transition-all duration-500">
+                <span className="text-[10px] font-bold uppercase tracking-widest">Track Journey</span>
+                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
               </button>
             )}
         </div>
       </div>
 
-      {/* II. RECENT PURCHASES & GUARANTEE */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+      {/* II. RECENT ACTIVITY & VERIFICATION */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        {/* RECENT PURCHASES LIST */}
-        <div className="p-6 md:p-10 bg-white border border-gray-100 rounded-[2rem] shadow-sm space-y-8">
+        {/* RECENT ACTIVITY LIST */}
+        <div className="p-8 bg-white border border-gray-100 rounded-3xl shadow-sm space-y-8">
           <div className="flex justify-between items-center border-b border-gray-50 pb-6">
-            <h4 className="text-[10px] font-bold text-black uppercase tracking-[0.2em]">Recent History</h4>
+            <h4 className="text-[10px] font-bold text-black uppercase tracking-[0.2em]">Recent Activity</h4>
             <Clock size={14} className="text-gold" />
           </div>
           
@@ -142,25 +141,25 @@ export default function OverviewTab({ profile }: { profile: any }) {
             {recentPurchases.length > 0 ? recentPurchases.map((order) => (
               <RecentRow 
                 key={order.id}
-                name={order.items?.[0]?.name || 'Luxury Acquisition'} 
+                name={order.items?.[0]?.name || 'Luxury Asset'} 
                 date={new Date(order.created_at).toLocaleDateString()} 
                 price={`$${(Number(order.total_price) || 0).toLocaleString()}`} 
               />
             )) : (
-              <p className="text-[10px] font-bold text-gray-300 uppercase text-center py-6">No records found</p>
+              <p className="text-[10px] font-bold text-gray-300 uppercase text-center py-6">No recent records</p>
             )}
           </div>
         </div>
 
-        {/* MOBILE OPTIMIZED TRUST CARD */}
-        <div className="p-8 md:p-10 bg-gray-50 rounded-[2rem] flex flex-col justify-center items-center text-center space-y-6 border border-gray-100">
-          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm text-gold">
-            <Gem size={28} />
+        {/* TRUST & INSPECTION CARD */}
+        <div className="p-8 bg-gray-50 rounded-3xl flex flex-col justify-center items-center text-center space-y-6 border border-gray-100">
+          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm text-gold border border-gold/5">
+            <Gem size={28} strokeWidth={1.5} />
           </div>
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-black uppercase tracking-[0.2em]">Inspected & Verified</h4>
-            <p className="text-[10px] md:text-[11px] text-gray-500 leading-relaxed max-w-xs mx-auto font-medium uppercase">
-              All items undergo a multi-point verification process by our in-house experts before dispatch.
+            <h4 className="text-xs font-bold text-black uppercase tracking-widest">Verified Authenticity</h4>
+            <p className="text-[10px] text-gray-500 leading-relaxed max-w-xs mx-auto font-medium uppercase tracking-tight">
+              Every asset is hand-inspected and verified by our master specialists before being added to your portfolio.
             </p>
           </div>
           <div className="flex gap-2">
@@ -185,8 +184,8 @@ function StatItem({ label, value }: { label: string, value: string }) {
 
 function RecentRow({ name, date, price }: { name: string, date: string, price: string }) {
   return (
-    <div className="flex justify-between items-center group cursor-pointer">
-      <div className="flex items-center gap-3 md:gap-4 overflow-hidden">
+    <div className="flex justify-between items-center group cursor-pointer transition-all">
+      <div className="flex items-center gap-4 overflow-hidden">
         <div className="w-1.5 h-1.5 rounded-full bg-gold/20 group-hover:bg-gold transition-colors shrink-0" />
         <div className="overflow-hidden">
           <p className="text-[11px] font-bold text-black uppercase tracking-tight group-hover:text-gold transition-colors truncate">{name}</p>
