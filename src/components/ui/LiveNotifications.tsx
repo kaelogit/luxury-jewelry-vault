@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect } from 'react'
-import { createClient } from '@/lib/supabase' // FIX: Factory import
+import { createClient } from '@/lib/supabase'
 import { toast } from 'sonner'
-import { MessageSquare } from 'lucide-react'
+import { MessageSquare, X } from 'lucide-react'
 
 interface Props {
   userId: string;
@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default function LiveNotifications({ userId, type }: Props) {
-  const supabase = createClient() // FIX: Standard factory initialization
+  const supabase = createClient()
 
   useEffect(() => {
     if (!userId) return
@@ -48,33 +48,31 @@ export default function LiveNotifications({ userId, type }: Props) {
 
         if (shouldNotify) {
           toast.custom((t) => (
-            <div className="bg-obsidian-900 border border-gold/30 p-5 rounded-2xl shadow-2xl flex items-center gap-4 min-w-[320px] animate-in slide-in-from-right-5 selection:bg-gold">
-              <div className="w-10 h-10 bg-gold/10 rounded-full flex items-center justify-center text-gold shrink-0 border border-gold/20">
-                <MessageSquare size={18} strokeWidth={1.5} />
+            <div className="bg-obsidian-900 border border-gold/20 p-4 rounded-xl shadow-2xl flex items-start gap-4 min-w-[320px] animate-in slide-in-from-right-5 pointer-events-auto">
+              <div className="w-8 h-8 bg-gold/10 rounded-full flex items-center justify-center text-gold shrink-0 border border-gold/10 mt-0.5">
+                <MessageSquare size={14} strokeWidth={1.5} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] font-bold text-gold uppercase tracking-widest mb-1">
-                  {type === 'admin' ? 'New Client Inquiry' : 'New Message Received'}
+                  {type === 'admin' ? 'Client Inquiry' : 'Secure Message'}
                 </p>
-                <p className="text-xs text-white line-clamp-1 opacity-80 font-medium italic">
+                <p className="text-xs text-white line-clamp-2 opacity-90 font-medium leading-relaxed">
                   "{newMsg.content}"
                 </p>
               </div>
               <button 
                 onClick={() => toast.dismiss(t)}
-                className="text-[9px] font-black text-obsidian-400 uppercase tracking-tighter hover:text-gold transition-colors ml-2"
+                className="text-gray-500 hover:text-white transition-colors mt-0.5"
               >
-                Dismiss
+                <X size={14} />
               </button>
             </div>
           ), { duration: 6000, position: 'top-right' })
           
-          // II. AESTHETIC CUE: Subtle audio feedback
+          // II. AUDIO CUE
           const audio = new Audio('/chime.mp3')
           audio.volume = 0.15
-          audio.play().catch(() => {
-            // Browsers block auto-play until first user interaction; ignore error
-          })
+          audio.play().catch(() => {})
         }
       })
       .subscribe()

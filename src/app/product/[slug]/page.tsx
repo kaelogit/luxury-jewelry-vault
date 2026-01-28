@@ -1,5 +1,5 @@
 import { Metadata, ResolvingMetadata } from 'next'
-import { createClient } from '@/lib/supabase' // Standardizing on the factory function
+import { createServer } from '@/lib/supabase-server'
 import ProductClient from './ProductClient'
 import { notFound } from 'next/navigation'
 
@@ -8,15 +8,15 @@ type Props = {
 }
 
 /**
- * METADATA ENGINE: SEO Optimization for High-Net-Worth Visibility
- * Transformed from "Store Page" to "Official Asset Registry"
+ * SEO METADATA
+ * Optimized for luxury search intent
  */
 export async function generateMetadata(
   { params }: Props,
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const { slug } = await params
-  const supabase = createClient() // Audit: Ensuring fresh client for SSR
+  const supabase = await createServer()
   
   const { data: product } = await supabase
     .from('products')
@@ -26,8 +26,8 @@ export async function generateMetadata(
 
   if (!product) {
     return { 
-      title: 'Asset Not Found | LUME VAULT',
-      description: 'The requested asset signature does not exist in the current node.'
+      title: 'Item Not Found | Lume Vault',
+      description: 'The requested item is no longer available.'
     }
   }
 
@@ -37,42 +37,30 @@ export async function generateMetadata(
     maximumFractionDigits: 0,
   }).format(product.price)
 
-  // Standardizing labels to professional industry terms
-  const classBranding = product.category === 'Watches' 
-    ? `${product.brand || 'HOROLOGICAL'} MASTERPIECE` 
-    : product.category === 'Diamonds' 
-    ? 'CERTIFIED INVESTMENT GEMSTONE' 
-    : 'INSTITUTIONAL PRECIOUS METAL BULLION'
-
-  const ogImage = product.images?.[0] || ''
+  const titleCategory = product.category === 'Watches' 
+    ? `${product.brand || 'Timepiece'}` 
+    : product.category
 
   return {
-    title: `${product.name} | ${classBranding}`,
-    description: product.description || `Secure acquisition of this ${product.category} asset via LUME Vault.`,
+    title: `${product.name} | ${titleCategory}`,
+    description: product.description?.slice(0, 160) || `Secure acquisition of this ${product.category} via Lume Vault.`,
     openGraph: {
-      title: `${product.name} — ${priceLabel}`,
-      description: `Secured within the LUME Vault. Professional logistics and direct settlement active.`,
-      images: [{ url: ogImage }],
+      title: `${product.name}`,
+      description: `Available now. ${priceLabel}.`,
+      images: [{ url: product.images?.[0] || '' }],
       type: 'website',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: `${product.name} — LUME VAULT`,
-      description: `Current Valuation: ${priceLabel}`,
-      images: [ogImage],
     },
   }
 }
 
 /**
  * MASTER SERVER FETCH
- * Optimized for 1,000+ Product Scalability
  */
 export default async function Page({ params }: Props) {
   const { slug } = await params
-  const supabase = createClient()
+  const supabase = await createServer()
 
-  // 1. Fetch Primary Asset: Selecting '*' to ensure review-critical data (id/category) is present
+  // 1. Fetch Primary Product
   const { data: product, error } = await supabase
     .from('products')
     .select('*')
@@ -81,32 +69,29 @@ export default async function Page({ params }: Props) {
 
   if (!product || error) notFound()
 
-  // 2. Fetch "Complementary Acquisitions" (Recommendations)
-  // Audit: Filtering by the SAME category first for better relevance in high-end shopping
+  // 2. Fetch Related Items (Same category first, then fallback)
   const { data: recommendations } = await supabase
     .from('products')
-    .select('id, name, price, images, slug, category, brand, gold_purity, diamond_clarity')
+    .select('id, name, price, images, slug, category, brand, gold_purity')
     .neq('id', product.id)
     .eq('is_visible', true)
-    .eq('category', product.category) // Strategic logic: Show similar assets first
+    .eq('category', product.category)
     .limit(4) 
 
-  // 3. Fallback Fetch: If not enough in same category, fill with others
+  // 3. Fallback if recommendation pool is small
   let finalRecs = recommendations || []
   if (finalRecs.length < 4) {
     const { data: fallback } = await supabase
       .from('products')
-      .select('id, name, price, images, slug, category, brand, gold_purity, diamond_clarity')
+      .select('id, name, price, images, slug, category, brand, gold_purity')
       .neq('id', product.id)
       .eq('is_visible', true)
-      .neq('category', product.category) // Get different items
+      .neq('category', product.category)
       .limit(4 - finalRecs.length)
     
     finalRecs = [...finalRecs, ...(fallback || [])]
   }
 
-  // 4. Pass to Client Component
-  // Audit: Passing the raw product ID and Category is vital for the Sovereign Review Generator
   return (
     <ProductClient 
       product={product} 

@@ -9,7 +9,7 @@ import {
   Loader2, ChevronRight, Menu, X,
   Settings, Store, ArrowRight
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase' // Standardized factory for Client Components
+import { createClient } from '@/lib/supabase' 
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Toaster } from 'sonner' 
@@ -21,7 +21,7 @@ import OrdersTab from '@/components/dashboard/OrdersTab'
 import ProfileTab from '@/components/dashboard/ProfileTab'
 
 export default function ClientDashboard() {
-  const supabase = createClient() // AUDIT FIX: Correct factory initialization
+  const supabase = createClient()
   const [activeTab, setActiveTab] = useState('overview')
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -61,7 +61,6 @@ export default function ClientDashboard() {
     if (isMenuOpen) setIsMenuOpen(false)
   }
 
-  // REFINED LOADING: Standard English & Typographic branding
   if (loading) return (
     <div className="h-screen bg-white flex flex-col items-center justify-center gap-6">
       <div className="relative">
@@ -70,17 +69,17 @@ export default function ClientDashboard() {
           transition={{ duration: 2, repeat: Infinity }}
           className="absolute -inset-4 border border-gold/20 rounded-full"
         />
-        <Loader2 className="animate-spin text-gold relative z-10" size={32} strokeWidth={1} />
+        <Loader2 className="animate-spin text-gold relative z-10" size={32} strokeWidth={1.5} />
       </div>
       <div className="text-center space-y-1">
         <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-gold font-serif italic">Lume Vault</p>
-        <p className="text-[8px] text-gray-400 uppercase tracking-widest">Accessing your account dashboard...</p>
+        <p className="text-[8px] text-gray-400 uppercase tracking-widest">Loading Account</p>
       </div>
     </div>
   )
 
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col lg:flex-row relative overflow-x-hidden">
+    <main className="min-h-screen bg-gray-50 flex flex-col lg:flex-row relative overflow-x-hidden font-sans">
       
       <Toaster position="bottom-right" expand={false} richColors closeButton />
       {profile?.id && <LiveNotifications userId={profile.id} type="client" />}
@@ -88,13 +87,13 @@ export default function ClientDashboard() {
       {/* 1. DESKTOP SIDEBAR NAVIGATION */}
       <aside className="hidden lg:flex w-80 border-r border-gray-200 bg-white flex-col justify-between p-10 sticky top-0 h-screen z-50">
         <div className="space-y-12">
-          {/* Identity: Typographic, no Crown */}
+          {/* Identity */}
           <Link href="/" className="group block space-y-1">
             <h2 className="text-2xl font-bold tracking-tighter text-black leading-none">
               LUME <span className="text-gold italic font-serif uppercase">Vault</span>
             </h2>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
-              Account Dashboard
+              Client Portal
             </p>
           </Link>
 
@@ -124,7 +123,7 @@ export default function ClientDashboard() {
                 className="w-full flex items-center justify-between px-6 py-5 bg-black text-white rounded-xl group hover:bg-gold hover:text-black transition-all duration-300 shadow-md"
               >
                 <div className="flex items-center gap-4">
-                  <Store size={16} className="text-gold" />
+                  <Store size={16} className="text-gold group-hover:text-black" />
                   <span className="text-[11px] font-bold uppercase tracking-wider">Shop All</span>
                 </div>
                 <ChevronRight size={14} />
@@ -207,9 +206,9 @@ export default function ClientDashboard() {
 
       {/* Mobile Bottom Tab Bar */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-8 py-4 flex justify-between items-center z-[60] shadow-[0_-5px_30px_rgba(0,0,0,0.05)] pb-safe">
-         <MobileTabBtn active={activeTab === 'overview'} onClick={() => switchTab('overview')} icon={<LayoutDashboard size={20}/>} label="Home" />
-         <MobileTabBtn active={activeTab === 'orders'} onClick={() => switchTab('orders')} icon={<ShoppingBag size={20}/>} label="Orders" />
-         <MobileTabBtn active={activeTab === 'profile'} onClick={() => switchTab('profile')} icon={<User size={20}/>} label="Settings" />
+          <MobileTabBtn active={activeTab === 'overview'} onClick={() => switchTab('overview')} icon={<LayoutDashboard size={20}/>} label="Home" />
+          <MobileTabBtn active={activeTab === 'orders'} onClick={() => switchTab('orders')} icon={<ShoppingBag size={20}/>} label="Orders" />
+          <MobileTabBtn active={activeTab === 'profile'} onClick={() => switchTab('profile')} icon={<User size={20}/>} label="Settings" />
       </div>
 
       {/* 3. MAIN CONTENT AREA */}

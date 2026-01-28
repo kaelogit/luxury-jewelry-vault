@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { 
   Settings, Save, Loader2, Mail, Phone, 
-  MapPin, Power, ShieldCheck, Building, 
-  Info, Globe, Bell
+  Power, ShieldCheck, Building, 
+  Globe, Bell
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -29,7 +29,7 @@ export default function GeneralSettings() {
 
   async function fetchBrandSettings() {
     setLoading(true)
-    const supabase = createClient(); const { data } = await supabase.from('brand_settings').select('*').eq('id', 1).single()
+    const { data } = await supabase.from('brand_settings').select('*').eq('id', 1).single()
     if (data) {
       setBrand({
         store_name: data.store_name || "Lume Vault",
@@ -68,14 +68,14 @@ export default function GeneralSettings() {
   )
 
   return (
-    <main className="space-y-10 pb-20 font-sans max-w-6xl mx-auto px-4">
+    <main className="space-y-10 pb-20 font-sans max-w-6xl mx-auto px-6 pt-6">
       
       <header className="flex flex-col gap-1 border-b border-gray-100 pb-10">
-        <h2 className="text-4xl font-bold text-black tracking-tight">
-          System <span className="text-gold font-serif italic font-medium">Settings</span>
+        <h2 className="text-3xl font-bold text-black tracking-tight uppercase">
+          Settings
         </h2>
-        <p className="text-[10px] uppercase font-bold tracking-[0.2em] text-gray-400">
-          Manage boutique identity and operational status
+        <p className="text-[10px] uppercase font-bold tracking-widest text-gray-400">
+          Manage identity and operational status
         </p>
       </header>
 
@@ -83,7 +83,7 @@ export default function GeneralSettings() {
         
         {/* SIDEBAR NAVIGATION */}
         <aside className="lg:col-span-3 space-y-2">
-          <SidebarItem icon={<Building size={16}/>} label="Boutique Identity" active />
+          <SidebarItem icon={<Building size={16}/>} label="General Info" active />
           <SidebarItem icon={<Globe size={16}/>} label="Regional & SEO" />
           <SidebarItem icon={<Bell size={16}/>} label="Notifications" />
           <SidebarItem icon={<ShieldCheck size={16}/>} label="Admin Access" />
@@ -96,12 +96,12 @@ export default function GeneralSettings() {
           <section className="bg-white p-8 border border-gray-100 rounded-3xl shadow-sm space-y-8">
             <div className="flex items-center gap-3 border-b border-gray-50 pb-4">
               <Settings className="text-gold" size={18} />
-              <h3 className="text-[11px] font-bold uppercase tracking-widest text-black">Boutique Profile</h3>
+              <h3 className="text-[11px] font-bold uppercase tracking-widest text-black">Store Profile</h3>
             </div>
             
             <div className="grid grid-cols-1 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest ml-1">Boutique Name</label>
+                <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest ml-1">Store Name</label>
                 <input 
                   type="text" 
                   value={brand.store_name} 
@@ -111,7 +111,7 @@ export default function GeneralSettings() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputWrapper label="Concierge Email" icon={<Mail size={14}/>}>
+                <InputWrapper label="Support Email" icon={<Mail size={14}/>}>
                   <input 
                     type="email" 
                     value={brand.contact_email} 
@@ -119,7 +119,7 @@ export default function GeneralSettings() {
                     className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-6 py-4 text-xs font-bold text-black outline-none focus:border-gold"
                   />
                 </InputWrapper>
-                <InputWrapper label="Support Line" icon={<Phone size={14}/>}>
+                <InputWrapper label="Phone Number" icon={<Phone size={14}/>}>
                   <input 
                     type="text" 
                     value={brand.support_phone} 
@@ -130,12 +130,12 @@ export default function GeneralSettings() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest ml-1">Lume Vault HQ Address</label>
+                <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest ml-1">Headquarters Address</label>
                 <textarea 
                   value={brand.hq_address}
                   onChange={(e) => setBrand({...brand, hq_address: e.target.value})}
                   placeholder="Official address for invoices and documentation..."
-                  className="w-full h-24 bg-gray-50 border border-gray-100 rounded-2xl p-6 text-xs font-bold text-black outline-none focus:border-gold transition-all"
+                  className="w-full h-24 bg-gray-50 border border-gray-100 rounded-2xl p-6 text-xs font-bold text-black outline-none focus:border-gold transition-all resize-none"
                 />
               </div>
             </div>
@@ -149,7 +149,7 @@ export default function GeneralSettings() {
               </div>
               <div className="space-y-1">
                 <h4 className="text-sm font-bold uppercase tracking-tight">Maintenance Mode</h4>
-                <p className="text-[10px] text-gray-400 font-medium">When active, customers will see a high-end "Currently Updating" screen.</p>
+                <p className="text-[10px] text-gray-400 font-medium">Enable to show a "Coming Soon" screen to customers.</p>
               </div>
             </div>
             
@@ -166,7 +166,7 @@ export default function GeneralSettings() {
             <AnimatePresence>
               {saveSuccess && (
                 <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="text-green-600 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-                  <ShieldCheck size={14}/> Configuration Synchronized
+                  <ShieldCheck size={14}/> Settings Saved
                 </motion.div>
               )}
             </AnimatePresence>
@@ -174,7 +174,7 @@ export default function GeneralSettings() {
             <button 
               onClick={handleSave}
               disabled={isUpdating}
-              className="px-12 py-4 bg-gold text-black rounded-full text-[11px] font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-lg flex items-center gap-2 active:scale-95"
+              className="px-10 py-4 bg-gold text-black rounded-full text-[11px] font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-lg flex items-center gap-2 active:scale-95 disabled:opacity-50"
             >
               {isUpdating ? <Loader2 className="animate-spin" size={16} /> : <><Save size={16} /> Save Changes</>}
             </button>
@@ -188,7 +188,7 @@ export default function GeneralSettings() {
 
 function SidebarItem({ icon, label, active = false }: any) {
   return (
-    <button className={`w-full flex items-center gap-3 px-5 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+    <button className={`w-full flex items-center gap-3 px-5 py-4 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
       active ? 'bg-gray-50 text-gold border border-gray-100 shadow-sm' : 'text-gray-400 hover:text-black hover:bg-gray-50'
     }`}>
       {icon} {label}

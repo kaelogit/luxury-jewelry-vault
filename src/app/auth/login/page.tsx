@@ -1,14 +1,14 @@
 'use client'
 
 import React, { useState } from 'react'
-import { createClient } from '@/lib/supabase' // Standard factory import
+import { createClient } from '@/lib/supabase' 
 import { ArrowRight, Mail, Lock, Loader2, AlertCircle, ChevronLeft } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
-  const supabase = createClient() // AUDIT FIX: Initialize factory properly
+  const supabase = createClient()
   const router = useRouter()
   
   const [email, setEmail] = useState('')
@@ -30,9 +30,9 @@ export default function LoginPage() {
       if (error) throw error
 
       if (data.session) {
-        // Using replace to prevent the user from "backing" into the login page
+        // PREVENT BACK-BUTTON LOOPS
         router.replace('/dashboard')
-        router.refresh() // Ensures the middleware detects the new session cookie
+        router.refresh() 
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Invalid credentials.")
@@ -43,54 +43,57 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen w-full bg-ivory-100 flex flex-col relative overflow-hidden selection:bg-gold selection:text-white">
       
-      {/* NAVIGATION: Clean & Minimal */}
-      <nav className="w-full py-8 px-8 md:px-12">
+      {/* NAVIGATION */}
+      <nav className="w-full py-8 px-6 md:px-12">
         <Link 
           href="/" 
-          className="group flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-obsidian-900 hover:text-gold transition-all"
+          className="group flex items-center gap-2 text-[10px] font-bold uppercase tracking-elite text-obsidian-900 hover:text-gold transition-all duration-500"
         >
-          <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> 
-          Return to Shop
+          <ChevronLeft size={12} className="group-hover:-translate-x-1 transition-transform duration-500" /> 
+          Back to Store
         </Link>
       </nav>
 
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
           
-          <header className="text-center mb-10 space-y-3">
-            <h1 className="text-4xl md:text-5xl font-medium text-obsidian-900 tracking-tight leading-none">
-              Welcome <span className="text-gold italic font-serif">Back</span>
+          <header className="text-center mb-12 space-y-4">
+            <h1 className="text-4xl md:text-6xl font-medium text-obsidian-900 tracking-tight leading-none">
+              Welcome <span className="text-gold font-serif italic">Back</span>
             </h1>
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-obsidian-400">Access your account</p>
+            <p className="text-[10px] font-bold uppercase tracking-elite text-obsidian-400">Sign in to your account</p>
           </header>
 
-          <form onSubmit={handleLogin} className="bg-white border border-ivory-300 p-8 md:p-12 rounded-3xl shadow-xl space-y-8">
-            <div className="space-y-6">
+          <form onSubmit={handleLogin} className="bg-white border border-ivory-300 p-8 md:p-14 rounded-3xl shadow-xl space-y-12 relative overflow-hidden">
+            {/* Subtle Texture */}
+            <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
+
+            <div className="space-y-8">
               
               {/* EMAIL INPUT */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-obsidian-600 ml-1 flex items-center gap-2">
-                  <Mail size={14} className="text-gold" /> Email Address
+              <div className="space-y-3 group">
+                <label className="text-[9px] font-bold uppercase tracking-boutique text-obsidian-400 group-focus-within:text-gold transition-colors ml-1 flex items-center gap-2">
+                  <Mail size={14} className="text-gold/60 group-focus-within:text-gold transition-colors" /> Email Address
                 </label>
                 <input 
                   type="email" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white border border-ivory-300 rounded-xl px-5 py-4 text-obsidian-900 text-sm focus:outline-none focus:border-gold transition-all placeholder:text-obsidian-300 h-[56px]"
+                  className="w-full bg-ivory-50 border-b border-ivory-300 rounded-none px-4 py-4 text-obsidian-900 text-sm focus:outline-none focus:border-gold focus:bg-white transition-all placeholder:text-obsidian-200 h-[56px] font-medium"
                   placeholder="name@example.com"
                   required
                 />
               </div>
 
               {/* PASSWORD INPUT */}
-              <div className="space-y-2">
+              <div className="space-y-3 group">
                 <div className="flex justify-between items-center px-1">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-obsidian-600 flex items-center gap-2">
-                    <Lock size={14} className="text-gold" /> Password
+                  <label className="text-[9px] font-bold uppercase tracking-boutique text-obsidian-400 group-focus-within:text-gold transition-colors flex items-center gap-2">
+                    <Lock size={14} className="text-gold/60 group-focus-within:text-gold transition-colors" /> Password
                   </label>
                   <Link 
                     href="/auth/forgot-password" 
-                    className="text-[9px] font-bold text-gold uppercase tracking-tighter hover:underline"
+                    className="text-[8px] font-bold text-obsidian-300 uppercase tracking-widest hover:text-gold transition-colors"
                   >
                     Forgot Password?
                   </Link>
@@ -99,7 +102,7 @@ export default function LoginPage() {
                   type="password" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-white border border-ivory-300 rounded-xl px-5 py-4 text-obsidian-900 text-sm focus:outline-none focus:border-gold transition-all placeholder:text-obsidian-300 h-[56px]"
+                  className="w-full bg-ivory-50 border-b border-ivory-300 rounded-none px-4 py-4 text-obsidian-900 text-sm focus:outline-none focus:border-gold focus:bg-white transition-all placeholder:text-obsidian-200 h-[56px] font-medium"
                   placeholder="••••••••"
                   required
                 />
@@ -111,8 +114,8 @@ export default function LoginPage() {
                 <motion.div 
                   initial={{ opacity: 0, y: -10 }} 
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-xs text-red-600 font-bold uppercase tracking-tighter"
+                  exit={{ opacity: 0 }}
+                  className="p-5 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-xs text-red-600 font-bold uppercase tracking-boutique"
                 >
                   <AlertCircle size={16} /> {errorMsg}
                 </motion.div>
@@ -122,15 +125,15 @@ export default function LoginPage() {
             <button 
               type="submit"
               disabled={loading}
-              className="w-full h-[64px] bg-obsidian-900 text-white rounded-xl text-[11px] font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-4 hover:bg-gold hover:text-obsidian-900 transition-all duration-500 shadow-lg disabled:opacity-50 active:scale-[0.98]"
+              className="w-full h-[64px] bg-obsidian-900 text-white rounded-xl text-[11px] font-bold uppercase tracking-elite flex items-center justify-center gap-4 hover:bg-gold hover:text-obsidian-900 transition-all duration-500 shadow-xl disabled:opacity-50 active:scale-[0.99]"
             >
-              {loading ? <Loader2 className="animate-spin" size={20} /> : <>Sign In <ArrowRight size={18} /></>}
+              {loading ? <Loader2 className="animate-spin" size={18} /> : <>Sign In <ArrowRight size={16} /></>}
             </button>
 
-            <div className="text-center pt-6 border-t border-ivory-100">
-              <p className="text-xs text-obsidian-400 font-medium">
+            <div className="text-center pt-4 border-t border-ivory-100">
+              <p className="text-[10px] text-obsidian-400 font-medium tracking-wide">
                 New to Lume Vault? {' '}
-                <Link href="/auth/signup" className="text-gold font-bold hover:text-obsidian-900 transition-colors">
+                <Link href="/auth/signup" className="text-gold font-bold hover:text-obsidian-900 transition-colors uppercase tracking-widest border-b border-transparent hover:border-gold pb-0.5">
                   Create Account
                 </Link>
               </p>
@@ -140,9 +143,9 @@ export default function LoginPage() {
       </div>
 
       {/* FOOTER */}
-      <footer className="w-full py-8 text-center mt-auto">
-          <p className="text-[9px] text-obsidian-300 font-bold uppercase tracking-[0.3em]">
-            Lume Vault &copy; 2026 | Secured Registry
+      <footer className="w-full py-12 text-center mt-auto border-t border-ivory-200/50">
+          <p className="text-[9px] text-obsidian-300 font-bold uppercase tracking-elite">
+            Lume Vault &copy; 2026 | All Rights Reserved
           </p>
       </footer>
     </main>

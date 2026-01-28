@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react'
 import { 
-  ChevronRight, ShoppingBag, Truck, ShieldCheck, CheckCircle2, Cuboid, ChevronLeft, ArrowRight 
+  ChevronRight, ShoppingBag, Truck, ShieldCheck, CheckCircle2, ChevronLeft, ArrowRight, Play 
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSelectionStore } from '@/store/useSelectionStore'
@@ -10,9 +10,9 @@ import { useUIStore } from '@/store/useUIStore'
 import Link from 'next/link'
 import ProductCard from '@/components/ui/ProductCard'
 import Image from 'next/image'
-import SovereignReviews from '@/components/product/SovereignReviews' // NEW INTEGRATION
+import SovereignReviews from '@/components/product/SovereignReviews' 
 
-// I. PERFORMANCE TOOLKIT
+// SHIMMER LOADER
 const shimmer = (w: number, h: number) => `
 <svg width="${w}" height="${h}" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <defs>
@@ -36,7 +36,7 @@ interface Product {
   brand?: string; gold_purity?: string; diamond_clarity?: string;
   diamond_color?: string; diamond_cut?: string; shape?: string; 
   movement?: string; case_material?: string; has_box_and_papers?: boolean;
-  weight_grams?: number; metal_color?: string; video_url?: string; three_d_model?: string;
+  weight_grams?: number; metal_color?: string; video_url?: string;
 }
 
 export default function ProductClient({ product, recommendations }: { product: Product, recommendations: any[] }) {
@@ -45,18 +45,18 @@ export default function ProductClient({ product, recommendations }: { product: P
   
   const [activeTab, setActiveTab] = useState<'specs' | 'logistics'>('specs')
   const [currentImg, setCurrentImg] = useState(0)
-  const [show3D, setShow3D] = useState(false) 
+  const [showVideo, setShowVideo] = useState(false) 
 
   const technicalSpecs = useMemo(() => [
-    { label: 'Registry ID', value: product.sku || product.id.slice(0, 8).toUpperCase() },
-    { label: 'Maison', value: product.brand },
+    { label: 'Reference', value: product.sku || product.id.slice(0, 8).toUpperCase() },
+    { label: 'Brand', value: product.brand },
     { label: 'Movement', value: product.movement },
-    { label: 'Fineness', value: product.gold_purity },
+    { label: 'Purity', value: product.gold_purity },
     { label: 'Clarity', value: product.diamond_clarity },
-    { label: 'Color Grade', value: product.diamond_color },
-    { label: 'Mass', value: product.weight_grams ? `${product.weight_grams}g` : null },
-    { label: 'Cut / Shape', value: product.shape },
-    { label: 'Case Material', value: product.case_material },
+    { label: 'Color', value: product.diamond_color },
+    { label: 'Weight', value: product.weight_grams ? `${product.weight_grams}g` : null },
+    { label: 'Shape', value: product.shape },
+    { label: 'Material', value: product.case_material },
     { label: 'Finish', value: product.metal_color },
   ].filter(spec => spec.value), [product]);
 
@@ -69,26 +69,28 @@ export default function ProductClient({ product, recommendations }: { product: P
     openDrawer()
   }
 
+  const hasVideo = !!product.video_url
+
   return (
-    <main className="min-h-screen bg-white pt-24 md:pt-32 pb-20 selection:bg-gold selection:text-white">
+    <main className="min-h-screen bg-white pt-24 md:pt-32 pb-20 font-sans">
       <div className="max-w-screen-2xl mx-auto px-6 md:px-12">
         
-        {/* II. BREADCRUMBS */}
-        <nav className="flex items-center gap-2 mb-12 text-[10px] font-bold uppercase tracking-[0.3em] text-obsidian-400">
-          <Link href="/collection" className="hover:text-gold transition-colors">Archive</Link>
-          <ChevronRight size={10} className="text-gold" />
-          <span className="text-gold font-black">{product.category}</span>
-          <ChevronRight size={10} className="text-gold" />
-          <span className="text-obsidian-900">{product.name}</span>
+        {/* I. BREADCRUMBS */}
+        <nav className="flex items-center gap-2 mb-12 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+          <Link href="/collection" className="hover:text-black transition-colors">Shop</Link>
+          <ChevronRight size={10} />
+          <span className="text-black">{product.category}</span>
+          <ChevronRight size={10} />
+          <span className="text-gray-900">{product.name}</span>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 xl:gap-24 items-start">
           
-          {/* III. MEDIA STAGE */}
+          {/* II. MEDIA GALLERY */}
           <div className="lg:col-span-7 space-y-8">
-            <div className="relative aspect-[4/5] bg-ivory-50 border border-ivory-200 rounded-sm overflow-hidden group">
+            <div className="relative aspect-[4/5] bg-gray-50 border border-gray-100 rounded-sm overflow-hidden group">
               <AnimatePresence mode="wait">
-                {!show3D ? (
+                {!showVideo ? (
                   <motion.div key="image" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full">
                     <Image 
                       src={product.images?.[currentImg] || ''} 
@@ -97,27 +99,23 @@ export default function ProductClient({ product, recommendations }: { product: P
                       priority 
                       placeholder="blur"
                       blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(700, 475))}`}
-                      className="object-cover transition-transform duration-1000 group-hover:scale-105" 
+                      className="object-cover" 
                       sizes="(max-width: 1024px) 100vw, 60vw"
                     />
                   </motion.div>
                 ) : (
-                  <motion.div key="3d" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full">
-                    {/* @ts-ignore */}
-                    <model-viewer
-                      src={product.three_d_model}
-                      poster={product.images[0]}
-                      auto-rotate
-                      camera-controls
-                      touch-action="pan-y"
-                      style={{ width: '100%', height: '100%' } as any}
+                  <motion.div key="video" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full">
+                    <video 
+                      src={product.video_url} 
+                      autoPlay loop muted playsInline 
+                      className="w-full h-full object-cover"
                     />
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {/* NAVIGATION OVERLAYS */}
-              {!show3D && product.images?.length > 1 && (
+              {/* NAV BUTTONS */}
+              {!showVideo && product.images?.length > 1 && (
                 <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none">
                   <MediaNavButton onClick={() => setCurrentImg(prev => (prev > 0 ? prev - 1 : product.images.length - 1))} icon={<ChevronLeft size={20} />} />
                   <MediaNavButton onClick={() => setCurrentImg(prev => (prev < product.images.length - 1 ? prev + 1 : 0))} icon={<ChevronRight size={20} />} />
@@ -125,87 +123,87 @@ export default function ProductClient({ product, recommendations }: { product: P
               )}
             </div>
 
-            {/* THUMBNAIL TICKER */}
+            {/* THUMBNAILS */}
             <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4">
               {product.images?.map((img, i) => (
                 <button 
                   key={i} 
-                  onClick={() => { setCurrentImg(i); setShow3D(false); }} 
-                  className={`relative w-24 h-28 flex-shrink-0 rounded-sm overflow-hidden border transition-all ${currentImg === i && !show3D ? 'border-gold shadow-lg' : 'border-ivory-200 opacity-40 hover:opacity-100'}`}
+                  onClick={() => { setCurrentImg(i); setShowVideo(false); }} 
+                  className={`relative w-20 h-24 flex-shrink-0 rounded-sm overflow-hidden border transition-all ${currentImg === i && !showVideo ? 'border-black opacity-100' : 'border-transparent opacity-50 hover:opacity-100'}`}
                 >
                   <Image src={img} alt="thumb" fill className="object-cover" />
                 </button>
               ))}
-              {product.three_d_model && (
-                <button onClick={() => setShow3D(true)} className={`w-24 h-28 flex-shrink-0 bg-obsidian-900 flex flex-col items-center justify-center gap-2 rounded-sm border transition-all ${show3D ? 'border-gold shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                  <Cuboid size={20} className="text-gold" />
-                  <span className="text-[8px] text-white font-black uppercase tracking-widest">360° VIEW</span>
+              {hasVideo && (
+                <button onClick={() => setShowVideo(true)} className={`w-20 h-24 flex-shrink-0 bg-gray-100 flex flex-col items-center justify-center gap-1 rounded-sm border transition-all ${showVideo ? 'border-black opacity-100' : 'border-transparent opacity-50 hover:opacity-100'}`}>
+                  <Play size={16} className="text-black" />
+                  <span className="text-[8px] font-bold uppercase tracking-widest">Video</span>
                 </button>
               )}
             </div>
           </div>
 
-          {/* IV. ASSET INFORMATION */}
-          <div className="lg:col-span-5 lg:sticky lg:top-32 h-fit space-y-12">
-            <header className="space-y-6">
+          {/* III. PRODUCT INFO */}
+          <div className="lg:col-span-5 lg:sticky lg:top-32 h-fit space-y-10">
+            <header className="space-y-6 border-b border-gray-100 pb-10">
               <div className="flex items-center gap-4">
-                <span className="bg-ivory-100 px-4 py-1.5 border border-gold/20 rounded-full text-[9px] font-black uppercase tracking-widest text-gold">
+                <span className="bg-gray-100 px-3 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest text-black">
                   {product.brand || product.category}
                 </span>
                 {product.has_box_and_papers && (
-                  <div className="flex items-center gap-2 text-[9px] font-bold text-obsidian-400 uppercase tracking-widest">
-                    <ShieldCheck size={14} className="text-gold" /> Registry Verified
+                  <div className="flex items-center gap-2 text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+                    <ShieldCheck size={14} className="text-gold" /> Certified
                   </div>
                 )}
               </div>
-              <h1 className="text-5xl md:text-8xl font-medium text-obsidian-900 tracking-tight leading-[0.85] font-serif italic">
+              <h1 className="text-4xl md:text-5xl font-serif italic text-black leading-tight">
                 {product.name}
               </h1>
-              <p className="text-4xl md:text-5xl font-light text-obsidian-900 font-serif">
+              <p className="text-3xl font-light text-black font-sans">
                 ${Number(product.price).toLocaleString()}
               </p>
             </header>
 
-            <div className="space-y-10">
-              <p className="text-xl text-obsidian-600 leading-relaxed font-medium italic border-l-2 border-gold pl-8">
+            <div className="space-y-8">
+              <p className="text-sm text-gray-600 leading-relaxed font-medium">
                 {product.description}
               </p>
 
               <div className="space-y-6">
                 <button 
                   onClick={handleAcquisition} 
-                  className="w-full py-8 bg-obsidian-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.4em] flex items-center justify-center gap-6 hover:bg-gold hover:text-obsidian-900 transition-all duration-700 shadow-2xl active:scale-95 group"
+                  className="w-full py-5 bg-black text-white rounded-xl text-[11px] font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-4 hover:bg-gold hover:text-black transition-all shadow-xl active:scale-95"
                 >
-                  Secure Acquisition <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
+                  Add to Cart <ShoppingBag size={16} />
                 </button>
                 
                 <div className="grid grid-cols-2 gap-4">
-                  <TrustBadge icon={<Truck size={14} />} text="Insured Logistics" />
-                  <TrustBadge icon={<CheckCircle2 size={14} />} text="Professional Audit" />
+                  <TrustBadge icon={<Truck size={14} />} text="Free Shipping" />
+                  <TrustBadge icon={<CheckCircle2 size={14} />} text="Authenticity Guarantee" />
                 </div>
               </div>
             </div>
 
-            {/* V. TECHNICAL REGISTRY ACCORDIONS */}
-            <div className="border-t border-ivory-200 pt-10">
-               <Accordion title="Technical Registry" isOpen={activeTab === 'specs'} onClick={() => setActiveTab('specs')}>
-                 <div className="grid grid-cols-2 gap-y-6 text-[11px] font-bold uppercase tracking-[0.2em] text-obsidian-900 pb-10">
-                    {technicalSpecs.map((spec, i) => (
-                      <React.Fragment key={i}>
-                        <p className="text-obsidian-400 italic">{spec.label}</p>
-                        <p className="text-right md:text-left">{spec.value}</p>
-                      </React.Fragment>
-                    ))}
+            {/* SPECS & DETAILS */}
+            <div className="border-t border-gray-100 pt-8">
+               <Accordion title="Specifications" isOpen={activeTab === 'specs'} onClick={() => setActiveTab('specs')}>
+                 <div className="grid grid-cols-2 gap-y-4 text-[10px] font-bold uppercase tracking-widest text-black pb-8 pt-4">
+                   {technicalSpecs.map((spec, i) => (
+                     <React.Fragment key={i}>
+                       <p className="text-gray-400">{spec.label}</p>
+                       <p className="text-right md:text-left">{spec.value}</p>
+                     </React.Fragment>
+                   ))}
                  </div>
                </Accordion>
 
-               <Accordion title="Handover Protocol" isOpen={activeTab === 'logistics'} onClick={() => setActiveTab('logistics')}>
-                 <div className="space-y-4 pb-10">
-                    <p className="text-[12px] text-obsidian-500 leading-relaxed font-medium">
-                      All acquisitions include fully insured global transit. Title of ownership is officially transferred upon physical handover and signature verification.
+               <Accordion title="Shipping & Returns" isOpen={activeTab === 'logistics'} onClick={() => setActiveTab('logistics')}>
+                 <div className="space-y-4 pb-8 pt-4">
+                    <p className="text-xs text-gray-500 leading-relaxed font-medium">
+                      Complimentary insured shipping on all orders. We offer a 14-day return policy for items in original condition.
                     </p>
-                    <Link href="/shipping" className="text-[10px] font-black uppercase text-gold tracking-widest border-b border-gold/30 pb-1">
-                      View Logistics Standards
+                    <Link href="/shipping" className="text-[10px] font-bold uppercase text-black hover:text-gold border-b border-gray-200 pb-1 inline-block">
+                      Read Policy
                     </Link>
                  </div>
                </Accordion>
@@ -213,18 +211,18 @@ export default function ProductClient({ product, recommendations }: { product: P
           </div>
         </div>
 
-        {/* VI. SOVEREIGN VERDICT (INTEGRATED) */}
+        {/* IV. REVIEWS */}
         <SovereignReviews productId={product.id} category={product.category} />
 
-        {/* VII. RECOMMENDATIONS */}
-        <section className="mt-32 pt-24 border-t border-ivory-200">
-          <div className="flex justify-between items-end mb-16">
-            <div className="space-y-4">
-               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gold">Curation</p>
-               <h2 className="text-4xl md:text-6xl font-serif italic text-obsidian-900 leading-none">Complementary <br/> <span className="text-gold not-italic">Acquisitions.</span></h2>
-            </div>
+        {/* V. RELATED ITEMS */}
+        <section className="mt-32 pt-20 border-t border-gray-100">
+          <div className="flex justify-between items-end mb-12">
+            <h3 className="text-3xl font-serif italic text-black">You May Also Like</h3>
+            <Link href="/collection" className="text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-black flex items-center gap-2">
+               View All <ArrowRight size={14}/>
+            </Link>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-12">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
             {recommendations.slice(0, 4).map((item) => (
               <ProductCard key={item.id} product={item} />
             ))}
@@ -237,7 +235,7 @@ export default function ProductClient({ product, recommendations }: { product: P
 
 function MediaNavButton({ onClick, icon }: any) {
   return (
-    <button onClick={onClick} className="pointer-events-auto p-4 bg-white/95 rounded-full shadow-2xl hover:bg-obsidian-900 hover:text-white transition-all opacity-0 group-hover:opacity-100">
+    <button onClick={onClick} className="pointer-events-auto p-3 bg-white rounded-full shadow-lg hover:scale-110 transition-transform opacity-0 group-hover:opacity-100 text-black">
       {icon}
     </button>
   )
@@ -245,18 +243,18 @@ function MediaNavButton({ onClick, icon }: any) {
 
 function TrustBadge({ icon, text }: any) {
   return (
-    <div className="flex items-center justify-center gap-3 text-[9px] font-bold text-obsidian-400 uppercase tracking-widest border border-ivory-200 py-5 rounded-2xl bg-ivory-50/50">
-      <div className="text-gold">{icon}</div> {text}
+    <div className="flex items-center justify-center gap-3 text-[9px] font-bold text-gray-500 uppercase tracking-widest border border-gray-100 py-4 rounded-xl bg-gray-50">
+      <div className="text-black">{icon}</div> {text}
     </div>
   )
 }
 
 function Accordion({ title, children, isOpen, onClick }: any) {
   return (
-    <div className="border-b border-ivory-100 group">
-      <button onClick={onClick} className="w-full flex justify-between items-center py-8 text-[12px] font-black uppercase tracking-[0.4em] text-obsidian-900 transition-all hover:text-gold">
+    <div className="border-b border-gray-100 last:border-0">
+      <button onClick={onClick} className="w-full flex justify-between items-center py-6 text-[11px] font-bold uppercase tracking-widest text-black hover:text-gold transition-colors">
         {title}
-        <div className={`w-1.5 h-1.5 bg-gold rounded-full transition-all duration-700 ${isOpen ? 'scale-[4] shadow-[0_0_20px_rgba(197,160,40,0.8)]' : 'opacity-20'}`} />
+        <span className={`text-lg transition-transform duration-300 ${isOpen ? 'rotate-45' : ''}`}>+</span>
       </button>
       <AnimatePresence>
         {isOpen && (

@@ -6,7 +6,6 @@ import {
   Users, 
   Package, 
   ShieldCheck,
-  Landmark,
   ChevronRight,
   Clock,
   Circle,
@@ -19,6 +18,7 @@ import { createClient } from '@/lib/supabase'
 
 export default function AdminDashboard() {
   const supabase = createClient()
+  
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalClients: 0,
@@ -92,7 +92,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 md:space-y-12 pb-20 font-sans px-4 md:px-0">
+    <div className="max-w-7xl mx-auto space-y-8 md:space-y-12 pb-20 font-sans px-4 md:px-0 pt-6">
       
       {/* 1. HEADER */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
@@ -171,14 +171,14 @@ export default function AdminDashboard() {
           </div>
 
           <div className="pt-8 border-t border-gray-50">
-             <div className="p-6 bg-gray-50 rounded-3xl space-y-4">
+              <div className="p-6 bg-gray-50 rounded-3xl space-y-4">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-relaxed">
                   Regular inventory audits ensure accurate valuation across all boutique channels.
                 </p>
                 <Link href="/admin/inventory" className="text-[10px] text-gold font-bold uppercase flex items-center gap-2 hover:translate-x-1 transition-transform">
                     Manage Stock <ChevronRight size={12} />
                 </Link>
-             </div>
+              </div>
           </div>
         </div>
       </div>

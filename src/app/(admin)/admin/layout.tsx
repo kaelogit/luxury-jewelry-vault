@@ -11,8 +11,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase';
-import { Toaster } from 'sonner'; // Integrated for Live Notifications
-import LiveNotifications from '@/components/ui/LiveNotifications'; // Headless listener
+import { Toaster } from 'sonner'; 
+import LiveNotifications from '@/components/ui/LiveNotifications'; 
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -68,7 +68,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="w-10 h-10 border-2 border-gold border-t-transparent rounded-full animate-spin" />
       <div className="text-center space-y-1">
         <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-gold">Lume Vault</p>
-        <p className="text-[8px] text-gray-500 uppercase tracking-widest px-4">Accessing Administrative Workspace</p>
+        <p className="text-[8px] text-gray-500 uppercase tracking-widest px-4">Loading Admin Suite</p>
       </div>
     </div>
   );
@@ -76,7 +76,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex h-screen bg-gray-50 text-black font-sans selection:bg-gold selection:text-white overflow-hidden">
       
-      {/* I. GLOBAL NOTIFICATION SYSTEM */}
+      {/* GLOBAL NOTIFICATIONS */}
       <Toaster position="top-right" expand={false} richColors closeButton />
       {adminProfile?.id && <LiveNotifications userId={adminProfile.id} type="admin" />}
 
@@ -120,24 +120,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <UserCircle size={24} strokeWidth={1.5} />
            </div>
            <div className="overflow-hidden">
-              <p className="text-[10px] font-bold text-black truncate uppercase">{adminProfile?.full_name || 'Boutique Admin'}</p>
-              <p className="text-[8px] font-bold text-gold uppercase tracking-widest">Vault Administrator</p>
+              <p className="text-[10px] font-bold text-black truncate uppercase">{adminProfile?.full_name || 'Admin User'}</p>
+              <p className="text-[8px] font-bold text-gold uppercase tracking-widest">Administrator</p>
            </div>
         </div>
 
         {/* NAVIGATION LINKS */}
         <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar pr-2">
-          <p className="text-[8px] font-bold text-gray-300 uppercase tracking-widest pl-4 mb-3">Boutique Operations</p>
+          <p className="text-[8px] font-bold text-gray-300 uppercase tracking-widest pl-4 mb-3">Management</p>
           <NavItem href="/admin/dashboard" icon={<LayoutDashboard size={18}/>} label="Overview" active={pathname === '/admin/dashboard'} />
-          <NavItem href="/admin/inventory" icon={<Box size={18}/>} label="Inventory" active={pathname === '/admin/inventory'} />
-          <NavItem href="/admin/orders" icon={<ShoppingBag size={18}/>} label="Customer Orders" active={pathname === '/admin/orders'} />
+          <NavItem href="/admin/inventory" icon={<Box size={18}/>} label="Catalog" active={pathname === '/admin/inventory'} />
+          <NavItem href="/admin/orders" icon={<ShoppingBag size={18}/>} label="Orders" active={pathname === '/admin/orders'} />
           <NavItem href="/admin/payments" icon={<CreditCard size={18}/>} label="Payments" active={pathname === '/admin/payments'} />
           
           <div className="pt-8">
-            <p className="text-[8px] font-bold text-gray-300 uppercase tracking-widest pl-4 mb-3">Client Relations</p>
-            <NavItem href="/admin/customers" icon={<Users size={18}/>} label="Client Registry" active={pathname === '/admin/customers'} />
-            <NavItem href="/admin/tracking" icon={<Truck size={18}/>} label="Shipping Status" active={pathname === '/admin/tracking'} />
-            <NavItem href="/admin/concierge" icon={<MessageSquare size={18}/>} label="Support Center" active={pathname.startsWith('/admin/concierge')} />
+            <p className="text-[8px] font-bold text-gray-300 uppercase tracking-widest pl-4 mb-3">Relations</p>
+            <NavItem href="/admin/customers" icon={<Users size={18}/>} label="Customers" active={pathname === '/admin/customers'} />
+            <NavItem href="/admin/tracking" icon={<Truck size={18}/>} label="Tracking" active={pathname === '/admin/tracking'} />
+            <NavItem href="/admin/concierge" icon={<MessageSquare size={18}/>} label="Support" active={pathname.startsWith('/admin/concierge')} />
           </div>
         </nav>
 

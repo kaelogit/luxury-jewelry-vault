@@ -55,7 +55,6 @@ export default function IdentityStep({ data, update, onNext }: IdentityProps) {
         
         if (profile) {
           // Sync logic: Only update if the field is currently empty 
-          // (prevents overwriting user's manual changes when navigating back)
           update({
             ...data,
             fullName: data.fullName || profile.full_name || '',
@@ -68,12 +67,12 @@ export default function IdentityStep({ data, update, onNext }: IdentityProps) {
       setLoading(false)
     }
     fetchProfile()
-  }, [])
+  }, []) // Empty dependency array ensures this runs once
 
   if (loading) return (
     <div className="h-64 flex flex-col items-center justify-center gap-4">
       <Loader2 className="text-gold animate-spin" size={32} strokeWidth={1.5} />
-      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400 italic">Authenticating Registry</p>
+      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400 italic">Loading Profile</p>
     </div>
   )
 
@@ -83,69 +82,69 @@ export default function IdentityStep({ data, update, onNext }: IdentityProps) {
     <motion.div 
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="space-y-8 md:space-y-10"
+      className="space-y-10 md:space-y-12"
     >
       
       {/* HEADER */}
       <div className="space-y-2">
         <h2 className="text-3xl md:text-5xl font-bold text-obsidian-900 font-serif italic tracking-tight">
-          Client <span className="text-gold not-italic">Identity</span>
+          Personal <span className="text-gold not-italic">Details</span>
         </h2>
         <p className="text-gray-500 text-xs md:text-sm max-w-lg leading-relaxed">
-          Verify your personal details for the Lume Vault registry. This must match your official identification for secure personal handover.
+          Please verify your information below. This will be used for insurance and delivery purposes.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
         <IdentityInput 
-          label="Full Legal Name" 
+          label="Full Name" 
           value={data.fullName} 
           onChange={(v: string) => update({...data, fullName: v})} 
           icon={<User size={14}/>} 
           placeholder="Enter full name"
         />
         <IdentityInput 
-          label="Secure Email" 
+          label="Email Address" 
           value={data.email} 
           disabled={true} 
           icon={<Mail size={14}/>} 
         />
         <IdentityInput 
-          label="Contact Number" 
+          label="Phone Number" 
           value={data.phone} 
           onChange={(v: string) => update({...data, phone: v})} 
           icon={<Phone size={14}/>} 
           placeholder="+1 (000) 000-0000"
         />
 
-        {/* COUNTRY SELECTOR: Mobile Optimized */}
+        {/* COUNTRY SELECTOR */}
         <div className="space-y-3 group">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400 ml-1 flex items-center gap-2 group-focus-within:text-gold transition-colors">
-            <Globe size={14} className="text-gold" /> Country
+          <label className="text-[9px] font-bold uppercase tracking-boutique text-gray-400 ml-1 flex items-center gap-2 group-focus-within:text-gold transition-colors">
+            <Globe size={14} className="text-gold/60 group-focus-within:text-gold transition-colors" /> Country
           </label>
           <div className="relative">
             <select 
               value={data.country}
               onChange={(e) => update({...data, country: e.target.value})}
-              className="w-full bg-white border border-gray-100 rounded-xl px-5 py-4 text-[13px] md:text-xs font-bold text-obsidian-900 uppercase tracking-widest focus:border-gold outline-none shadow-sm appearance-none cursor-pointer transition-all"
+              className="w-full bg-ivory-50 border-b border-ivory-300 rounded-none px-4 py-4 text-[13px] md:text-xs font-bold text-obsidian-900 uppercase tracking-widest focus:border-gold focus:bg-white outline-none shadow-sm appearance-none cursor-pointer transition-all h-[56px]"
             >
               <option value="">Select Country</option>
               {ALL_COUNTRIES.map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
           </div>
         </div>
       </div>
 
       {/* SECURITY NOTICE */}
-      <div className="bg-gray-50 p-5 md:p-6 rounded-2xl border border-gray-100 flex gap-4 items-start">
-        <ShieldCheck className="text-gold shrink-0 mt-1" size={20} />
+      <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 flex gap-4 items-start">
+        <ShieldCheck className="text-gold shrink-0 mt-0.5" size={20} />
         <div className="space-y-1">
-          <h4 className="text-[10px] font-bold text-obsidian-900 uppercase tracking-widest">Protocol Secured</h4>
-          <p className="text-[10px] md:text-[11px] text-gray-500 leading-relaxed uppercase tracking-tight">
-            High-valuation assets require verified identity matches. Your data is encrypted and managed via secure Lume Vault protocols.
+          <h4 className="text-[10px] font-bold text-obsidian-900 uppercase tracking-widest">Secure Encryption</h4>
+          <p className="text-[10px] text-gray-500 leading-relaxed uppercase tracking-tight">
+            Your personal information is encrypted and securely stored. We do not share your data with third parties.
           </p>
         </div>
       </div>
@@ -155,9 +154,9 @@ export default function IdentityStep({ data, update, onNext }: IdentityProps) {
         <button 
           onClick={onNext}
           disabled={!isFormValid}
-          className="w-full bg-black text-white h-[75px] rounded-2xl text-[11px] font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-4 hover:bg-gold hover:text-black transition-all shadow-xl disabled:opacity-20 disabled:grayscale disabled:cursor-not-allowed group active:scale-[0.98]"
+          className="w-full bg-black text-white h-[70px] rounded-xl text-[11px] font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-4 hover:bg-gold hover:text-black transition-all shadow-xl disabled:opacity-30 disabled:cursor-not-allowed group active:scale-[0.99]"
         >
-          Proceed to Logistics <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+          Continue to Shipping <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
         </button>
       </div>
     </motion.div>
@@ -167,8 +166,8 @@ export default function IdentityStep({ data, update, onNext }: IdentityProps) {
 function IdentityInput({ label, value, onChange, icon, placeholder, disabled = false }: any) {
   return (
     <div className="space-y-3 group">
-      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400 ml-1 flex items-center gap-2 group-focus-within:text-gold transition-colors">
-        <span className="text-gold">{icon}</span> {label}
+      <label className="text-[9px] font-bold uppercase tracking-boutique text-gray-400 ml-1 flex items-center gap-2 group-focus-within:text-gold transition-colors">
+        {React.cloneElement(icon, { className: "text-gold/60 group-focus-within:text-gold transition-colors", strokeWidth: 1.5 })} {label}
       </label>
       <input 
         type="text"
@@ -176,8 +175,8 @@ function IdentityInput({ label, value, onChange, icon, placeholder, disabled = f
         disabled={disabled}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        /* text-[16px] prevents iOS auto-zoom on focus */
-        className="w-full bg-white border border-gray-100 rounded-xl px-5 py-4 text-[16px] md:text-xs font-bold text-obsidian-900 uppercase tracking-widest focus:border-gold outline-none shadow-sm disabled:bg-gray-50 disabled:text-gray-400 transition-all"
+        /* LUXURY INPUT STYLE: Bottom border only, lighter background */
+        className="w-full bg-ivory-50 border-b border-ivory-300 rounded-none px-4 py-4 text-[16px] md:text-sm font-medium text-obsidian-900 focus:border-gold focus:bg-white outline-none placeholder:text-gray-300 disabled:bg-gray-50 disabled:text-gray-400 transition-all h-[56px]"
       />
     </div>
   )

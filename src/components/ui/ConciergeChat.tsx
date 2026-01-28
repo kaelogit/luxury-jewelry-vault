@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react'
-import { createClient } from '@/lib/supabase' // AUDIT FIX: Using the instance factory
+import { createClient } from '@/lib/supabase'
 import { Send, ShieldCheck, Loader2, MessageSquare, Clock, Sparkles } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 
 interface Props {
   threadId: string
@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default function ConciergeChat({ threadId, currentUserId }: Props) {
-  const supabase = createClient() // FIX: Standard factory initialization for Next.js 15
+  const supabase = createClient()
   const [messages, setMessages] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
@@ -21,7 +21,7 @@ export default function ConciergeChat({ threadId, currentUserId }: Props) {
     if (!threadId) return
     fetchMessages()
 
-    // I. LIVE DIALOGUE SYNC: Real-time connection to the private thread
+    // REAL-TIME SYNC
     const channel = supabase
       .channel(`thread-${threadId}`)
       .on('postgres_changes', { 
@@ -38,7 +38,6 @@ export default function ConciergeChat({ threadId, currentUserId }: Props) {
   }, [threadId])
 
   useEffect(() => {
-    // Smooth transition to the latest entry
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
@@ -69,52 +68,52 @@ export default function ConciergeChat({ threadId, currentUserId }: Props) {
       }
     ])
 
-    if (error) console.error("Dialogue delivery failure:", error)
+    if (error) console.error("Message failure:", error)
   }
 
   return (
-    <div className="flex flex-col h-[750px] bg-white border border-gray-100 rounded-[2.5rem] overflow-hidden shadow-2xl relative">
+    <div className="flex flex-col h-[750px] bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-2xl relative font-sans">
       
-      {/* Background Aesthetic: Subtler than the heavy watermark */}
+      {/* WATERMARK */}
       <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none">
-        <Sparkles size={400} className="text-gold" />
+        <Sparkles size={400} className="text-obsidian-900" />
       </div>
 
-      {/* HEADER: High-End Boutique Dialogue */}
+      {/* HEADER */}
       <header className="px-8 py-6 border-b border-gray-50 bg-white/90 backdrop-blur-md flex justify-between items-center relative z-10">
         <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gold border border-gold/10">
-               <MessageSquare size={22} strokeWidth={1.5} />
+            <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-gold border border-gold/10">
+               <MessageSquare size={20} strokeWidth={1.5} />
             </div>
             <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
           </div>
           <div>
-            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em] text-black mb-1">Private Consultant</h4>
+            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em] text-obsidian-900 mb-1">Private Concierge</h4>
             <div className="flex items-center gap-2">
-               <span className="text-[9px] font-medium text-gray-400 uppercase tracking-widest">Active Dialogue</span>
+               <span className="text-[9px] font-medium text-gray-400 uppercase tracking-widest">Live Session</span>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-3 px-5 py-2.5 bg-gray-50 rounded-full border border-gray-100">
-          <ShieldCheck size={14} className="text-gold" />
-          <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Verified Secure</span>
+        <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-full border border-gray-100">
+          <ShieldCheck size={12} className="text-gold" />
+          <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Encrypted</span>
         </div>
       </header>
 
-      {/* DIALOGUE FEED */}
-      <div className="flex-1 overflow-y-auto px-6 md:px-10 py-10 space-y-8 custom-scrollbar relative z-10 bg-gray-50/20">
+      {/* MESSAGES */}
+      <div className="flex-1 overflow-y-auto px-6 md:px-10 py-10 space-y-8 relative z-10 bg-gray-50/30">
         {loading ? (
           <div className="h-full flex flex-col items-center justify-center gap-4">
-            <Loader2 className="animate-spin text-gold" size={32} strokeWidth={1.5} />
-            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Synchronizing history...</p>
+            <Loader2 className="animate-spin text-gold" size={24} />
+            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Loading History...</p>
           </div>
         ) : (
           <>
             {messages.length === 0 && (
-                <div className="text-center py-20 opacity-30">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.3em]">Start your conversation below</p>
-                </div>
+              <div className="text-center py-20 opacity-40">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em]">Begin secure dialogue</p>
+              </div>
             )}
             {messages.map((msg) => {
                 const isMe = msg.sender_id === currentUserId
@@ -126,16 +125,15 @@ export default function ConciergeChat({ threadId, currentUserId }: Props) {
                     className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                 >
                     <div className={`max-w-[85%] md:max-w-[70%] space-y-2`}>
-                    <div className={`p-5 rounded-2xl text-[14px] leading-relaxed shadow-sm ${
+                    <div className={`p-6 rounded-2xl text-sm leading-relaxed shadow-sm ${
                         isMe 
-                        ? 'bg-black text-white rounded-br-none font-medium' 
-                        : 'bg-white text-black rounded-bl-none border border-gray-100'
+                        ? 'bg-obsidian-900 text-white rounded-br-sm' 
+                        : 'bg-white text-obsidian-900 rounded-bl-sm border border-gray-100'
                     }`}>
                         {msg.content}
                     </div>
                     <div className={`flex items-center gap-2 px-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                        <Clock size={10} className="text-gray-300" />
-                        <p className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter">
+                        <p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">
                             {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
                     </div>
@@ -148,26 +146,26 @@ export default function ConciergeChat({ threadId, currentUserId }: Props) {
         <div ref={scrollRef} />
       </div>
 
-      {/* INPUT: Clean & Minimalist */}
-      <form onSubmit={sendMessage} className="p-6 md:p-10 bg-white border-t border-gray-100 relative z-10">
-        <div className="relative flex items-center max-w-5xl mx-auto">
+      {/* INPUT AREA */}
+      <form onSubmit={sendMessage} className="p-6 md:p-8 bg-white border-t border-gray-100 relative z-10">
+        <div className="relative flex items-center">
           <input 
             type="text" 
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type your message..."
-            className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-8 py-5 text-black text-sm outline-none focus:border-gold transition-all placeholder:text-gray-300"
+            className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-6 py-5 text-obsidian-900 text-sm outline-none focus:border-gold transition-all placeholder:text-gray-400 font-medium"
           />
           <button 
             type="submit"
             disabled={!newMessage.trim()}
-            className="absolute right-3 p-4 bg-black text-gold rounded-xl hover:bg-gold hover:text-black transition-all shadow-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group"
+            className="absolute right-2 p-3 bg-obsidian-900 text-white rounded-xl hover:bg-gold hover:text-black transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group"
           >
-            <Send size={18} className="group-hover:translate-x-1 transition-transform" />
+            <Send size={16} className="group-hover:translate-x-0.5 transition-transform" />
           </button>
         </div>
-        <p className="text-center mt-4 text-[9px] font-bold text-gray-300 uppercase tracking-widest">
-            A consultant will respond shortly
+        <p className="text-center mt-4 text-[8px] font-bold text-gray-300 uppercase tracking-[0.2em]">
+            Avg. Response Time: 5 Minutes
         </p>
       </form>
     </div>

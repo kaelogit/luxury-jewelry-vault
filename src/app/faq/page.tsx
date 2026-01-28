@@ -2,54 +2,54 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Minus, Search, MessageSquare, ArrowRight } from 'lucide-react'
+import { Plus, Minus, MessageSquare, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
 const FAQ_DATA = [
   {
-    category: "Acquisitions & Authenticity",
+    category: "Authenticity",
     questions: [
       {
-        q: "Are all pieces in the registry authentic?",
-        a: "Yes. Every asset in the Lume Vault collection is 100% authentic. Diamonds and rare stones are accompanied by GIA or equivalent certification, while timepieces include original manufacture documentation and our own multi-point appraisal."
+        q: "Are all items authentic?",
+        a: "Yes. Every item in the Lume Vault collection is 100% authentic. Diamonds are accompanied by GIA certification, and timepieces include original manufacturer documentation."
       },
       {
-        q: "Can I view an item in person before purchasing?",
-        a: "Private viewings are available by appointment only at our partner boutiques in New York, London, and Dubai. Please contact our advisors to arrange a session."
+        q: "Can I view items in person?",
+        a: "Private viewings are available by appointment only at our partner locations in New York, London, and Dubai. Please contact us to arrange a session."
       },
       {
-        q: "What documentation is included with my purchase?",
-        a: "Every acquisition includes a Certificate of Authenticity, official appraisal documents for insurance purposes, and a Lume Vault Registry Card."
+        q: "What documentation is included?",
+        a: "Every purchase includes a Certificate of Authenticity, official appraisal documents for insurance, and a Lume Vault Registry Card."
       }
     ]
   },
   {
-    category: "Logistics & Delivery",
+    category: "Shipping",
     questions: [
       {
         q: "How is my order delivered?",
-        a: "We utilize a private concierge logistics network. All deliveries are fully insured and handled by specialized security couriers to ensure a safe and discreet handover."
+        a: "We utilize a private logistics network. All deliveries are fully insured and handled by specialized security couriers to ensure a safe handover."
       },
       {
         q: "Do you ship internationally?",
-        a: "Yes. We facilitate secure global delivery to over 50 countries. All customs documentation and international insurance are managed by our logistics team."
+        a: "Yes. We facilitate secure global delivery to over 50 countries. All customs documentation and international insurance are managed by our team."
       },
       {
-        q: "How long does the delivery process take?",
-        a: "Upon settlement, items typically undergo a final 48-hour inspection before being released for transit. International delivery usually takes 3–7 business days."
+        q: "How long does delivery take?",
+        a: "Upon payment confirmation, items typically undergo a final 48-hour inspection before release. International delivery usually takes 3–7 business days."
       }
     ]
   },
   {
-    category: "Settlement & Security",
+    category: "Payments",
     questions: [
       {
         q: "Which payment methods do you accept?",
-        a: "We accept secure Bank Wires, major Fintech platforms (CashApp, PayPal, Apple Pay), and sovereign digital assets including BTC, ETH, and USDT."
+        a: "We accept Bank Wires, major Digital Apps (CashApp, PayPal, Apple Pay), and Cryptocurrency (BTC, ETH, USDT)."
       },
       {
         q: "Is my personal data secure?",
-        a: "Absolutely. Lume Vault uses end-to-end encryption for all communications and settlements. We do not store full payment details on our servers, and your data is never shared with third parties."
+        a: "Absolutely. Lume Vault uses end-to-end encryption for all communications. We do not store payment details on our servers, and your data is never shared."
       }
     ]
   }
@@ -63,17 +63,17 @@ export default function FAQPage() {
   }
 
   return (
-    <main className="min-h-screen bg-ivory-100 pt-32 pb-20 px-4 md:px-12">
+    <main className="min-h-screen bg-ivory-100 pt-32 pb-20 px-6 md:px-12 font-sans">
       <div className="max-w-4xl mx-auto space-y-16">
         
         {/* I. HEADER */}
         <header className="space-y-6 text-center md:text-left">
-          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gold">Assistance</p>
-          <h1 className="text-5xl md:text-8xl font-medium text-obsidian-900 font-serif italic tracking-tight leading-none">
-            Common <br/> <span className="text-gold not-italic">Questions.</span>
+          <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-gold">Support</p>
+          <h1 className="text-5xl md:text-7xl font-medium text-obsidian-900 font-serif italic tracking-tight leading-none">
+            Common <span className="text-gold not-italic">Questions.</span>
           </h1>
-          <p className="text-obsidian-600 text-lg md:text-xl leading-relaxed font-medium max-w-2xl italic">
-            Everything you need to know about the Lume Vault acquisition process and our global logistics standards.
+          <p className="text-obsidian-600 text-lg md:text-xl leading-relaxed font-medium max-w-2xl">
+            Everything you need to know about the Lume Vault process and our global standards.
           </p>
         </header>
 
@@ -81,7 +81,7 @@ export default function FAQPage() {
         <div className="space-y-16">
           {FAQ_DATA.map((group, groupIdx) => (
             <section key={groupIdx} className="space-y-8">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gold border-b border-ivory-300 pb-4">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-gold border-b border-ivory-300 pb-4">
                 {group.category}
               </h3>
               
@@ -93,8 +93,8 @@ export default function FAQPage() {
                   return (
                     <div 
                       key={id} 
-                      className={`bg-white border rounded-[2rem] transition-all duration-500 overflow-hidden ${
-                        isOpen ? 'border-gold shadow-xl' : 'border-ivory-300'
+                      className={`bg-white border rounded-3xl transition-all duration-300 overflow-hidden ${
+                        isOpen ? 'border-gold shadow-lg' : 'border-ivory-300 hover:border-ivory-400'
                       }`}
                     >
                       <button 
@@ -131,7 +131,7 @@ export default function FAQPage() {
         </div>
 
         {/* III. CTA FOOTER */}
-        <section className="bg-obsidian-900 rounded-[3rem] p-10 md:p-16 text-center space-y-8 relative overflow-hidden">
+        <section className="bg-obsidian-900 rounded-[2.5rem] p-10 md:p-16 text-center space-y-8 relative overflow-hidden shadow-2xl">
           {/* Decorative Glow */}
           <div className="absolute top-0 left-0 w-full h-full bg-gold/5 pointer-events-none" />
           
@@ -143,15 +143,15 @@ export default function FAQPage() {
           <div className="flex flex-col md:flex-row gap-4 justify-center relative z-10">
             <Link 
               href="/contact"
-              className="px-10 py-5 bg-gold text-obsidian-900 text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-white transition-all shadow-lg active:scale-95"
+              className="px-10 py-4 bg-gold text-obsidian-900 text-[11px] font-bold uppercase tracking-widest rounded-xl hover:bg-white transition-all shadow-lg active:scale-95"
             >
-              Contact Concierge
+              Contact Us
             </Link>
             <Link 
               href="/track"
-              className="px-10 py-5 bg-white/10 text-white text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-white/20 transition-all border border-white/20 active:scale-95"
+              className="px-10 py-4 bg-white/10 text-white text-[11px] font-bold uppercase tracking-widest rounded-xl hover:bg-white/20 transition-all border border-white/20 active:scale-95"
             >
-              Track an Order
+              Track Order
             </Link>
           </div>
         </section>

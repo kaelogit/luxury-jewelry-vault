@@ -2,26 +2,26 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 /**
- * SELECTION ITEM INTERFACE
- * Perfectly aligned with Lume Vault Production Standards and UI requirements.
+ * SHOPPING BAG ITEM
+ * Basic details for items kept in the user's selection.
  */
 export interface SelectionItem {
   id: string
-  name: string       // Matches products.name
-  price: number      // Numeric value for calculations
-  image: string      // Matches products.image_url
-  category: string   // Matches products.category
-  slug: string       // Required for routing back to product page
-  house: string      // Displays 'Lume Vault' branding on UI
-  quantity: number   // NEW: Tracks how many of this asset are selected
+  name: string
+  price: number
+  image: string
+  category: string
+  slug: string
+  house: string
+  quantity: number
 }
 
 interface SelectionState {
   items: SelectionItem[]
-  addItem: (item: Omit<SelectionItem, 'quantity'>) => void // Accepts item without quantity
-  removeItem: (id: string) => void       // Decrements or removes item
-  deleteItem: (id: string) => void       // Completely removes item regardless of quantity
-  clearCart: () => void 
+  addItem: (item: Omit<SelectionItem, 'quantity'>) => void
+  removeItem: (id: string) => void
+  deleteItem: (id: string) => void
+  clearBag: () => void 
   getTotalPrice: () => number
 }
 
@@ -31,15 +31,14 @@ export const useSelectionStore = create<SelectionState>()(
       items: [],
       
       /**
-       * Adds a piece to the selection
-       * If it exists, increments quantity. If not, adds new with quantity 1.
+       * Add a product to the bag.
+       * If it's already there, we just add one more to the count.
        */
       addItem: (item) => {
         const currentItems = get().items
-        const existingItem = currentItems.find((i) => i.id === item.id)
+        const exists = currentItems.find((i) => i.id === item.id)
         
-        if (existingItem) {
-          // INCREMENT LOGIC: Map through and update quantity
+        if (exists) {
           set({
             items: currentItems.map((i) =>
               i.id === item.id 
@@ -48,30 +47,25 @@ export const useSelectionStore = create<SelectionState>()(
             ),
           })
         } else {
-          // NEW ASSET LOGIC: Normalize and set initial quantity to 1
-          const normalizedItem: SelectionItem = {
-            id: item.id,
-            name: item.name,
+          const newItem: SelectionItem = {
+            ...item,
             price: Number(item.price),
-            image: item.image,
-            category: item.category,
-            slug: item.slug,
+            quantity: 1,
             house: item.house || 'Lume Vault',
-            quantity: 1, // Start at 1
           }
-          set({ items: [...currentItems, normalizedItem] })
+          set({ items: [...currentItems, newItem] })
         }
       },
 
       /**
-       * Removes or Decrements an item
-       * If quantity > 1, it reduces it. If 1, it removes the row.
+       * Reduce the count of an item.
+       * If only one is left, we remove it from the bag entirely.
        */
       removeItem: (id) => {
         const currentItems = get().items
-        const existingItem = currentItems.find((i) => i.id === id)
+        const target = currentItems.find((i) => i.id === id)
 
-        if (existingItem && existingItem.quantity > 1) {
+        if (target && target.quantity > 1) {
           set({
             items: currentItems.map((i) =>
               i.id === id ? { ...i, quantity: i.quantity - 1 } : i
@@ -83,21 +77,19 @@ export const useSelectionStore = create<SelectionState>()(
       },
 
       /**
-       * Hard Delete
-       * Purges the item row entirely regardless of quantity
+       * Remove a product completely, no matter how many were added.
        */
       deleteItem: (id) => {
         set({ items: get().items.filter((i) => i.id !== id) })
       },
 
       /**
-       * Purges the selection after successful checkout
+       * Empty the entire bag.
        */
-      clearCart: () => set({ items: [] }),
+      clearBag: () => set({ items: [] }),
 
       /**
-       * Calculates total valuation
-       * Logic: Price * Quantity
+       * Calculate the total price of everything in the bag.
        */
       getTotalPrice: () => {
         return get().items.reduce(
@@ -107,7 +99,7 @@ export const useSelectionStore = create<SelectionState>()(
       }
     }),
     {
-      name: 'lume-vault-registry-v3', // Version bumped to v3 for quantity support
+      name: 'lume-vault-bag-storage',
     }
   )
 )

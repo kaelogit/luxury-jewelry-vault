@@ -1,17 +1,17 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { createClient } from '@/lib/supabase' // FIX: Using the correct factory
+import { createClient } from '@/lib/supabase' 
 import { 
-  Send, User, ShieldCheck, Gem, MoreVertical, 
-  Search, MessageSquare, Loader2, Lock, 
-  ArrowLeft, Clock, Globe, Briefcase, ChevronRight,
-  Mail, MapPin, UserCircle, Phone, Plus, X, ChevronLeft, CheckCircle2, RotateCcw
+  Send, UserCircle, Search, MessageSquare, Loader2, 
+  Plus, X, ChevronLeft, CheckCircle2, RotateCcw
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export default function AdminSupportCenter() {
-  const supabase = createClient() // FIX: Initialize factory once at the top
+  const supabase = createClient()
+  
+  // STATE MANAGEMENT
   const [threads, setThreads] = useState<any[]>([])
   const [selectedThread, setSelectedThread] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
@@ -19,6 +19,7 @@ export default function AdminSupportCenter() {
   const [loading, setLoading] = useState(true)
   const [adminId, setAdminId] = useState<string | null>(null)
   
+  // NEW CHAT MODAL STATE
   const [isNewChatOpen, setIsNewChatOpen] = useState(false)
   const [clientSearch, setClientSearch] = useState('')
   const [clients, setClients] = useState<any[]>([])
@@ -28,7 +29,7 @@ export default function AdminSupportCenter() {
   
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // I. SYSTEM INITIALIZATION: Fetch ALL threads for Admin visibility
+  // I. SYSTEM INITIALIZATION
   const initSupport = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) setAdminId(user.id)
@@ -47,31 +48,29 @@ export default function AdminSupportCenter() {
       .order('updated_at', { ascending: false })
 
     if (error) {
-      console.error("Registry Sync Error:", error.message)
-      setLoading(false)
-      return
+      console.error("Sync Error:", error.message)
     }
 
     if (data) setThreads(data)
     setLoading(false)
   }
 
+  // II. REAL-TIME THREAD LISTENER
   useEffect(() => {
     initSupport()
 
-    // FIX: Standard postgres_changes for real-time thread updates
     const threadChannel = supabase.channel('support-sync')
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
         table: 'chat_threads' 
-      }, () => initSupport())
+      }, () => initSupport()) // Re-fetch list on any update
       .subscribe()
 
     return () => { supabase.removeChannel(threadChannel) }
-  }, [])
+  }, []) // Empty dependency array ensures this runs once on mount
 
-  // II. LIVE CHAT STREAMING: Messages & Mark as Read
+  // III. LIVE CHAT STREAMING
   useEffect(() => {
     if (!selectedThread?.id) return
 
@@ -84,7 +83,7 @@ export default function AdminSupportCenter() {
       
       if (data) setMessages(data)
 
-      // FIX: Mark thread as seen by admin
+      // Mark as read by admin
       await supabase
         .from('chat_threads')
         .update({ admin_unread_count: 0 })
@@ -103,6 +102,7 @@ export default function AdminSupportCenter() {
         filter: `thread_id=eq.${selectedThread.id}` 
       }, (payload) => {
         setMessages(prev => {
+          // Deduplication check
           if (prev.find(m => m.id === payload.new.id)) return prev
           return [...prev, payload.new]
         })
@@ -112,7 +112,7 @@ export default function AdminSupportCenter() {
     return () => { supabase.removeChannel(msgChannel) }
   }, [selectedThread?.id])
 
-  // III. CLIENT SEARCH
+  // IV. CLIENT SEARCH LOGIC
   useEffect(() => {
     if (clientSearch.length < 2) {
       setClients([])
@@ -125,28 +125,32 @@ export default function AdminSupportCenter() {
         .eq('role', 'client')
         .ilike('full_name', `%${clientSearch}%`)
         .limit(5)
+      
       if (data) setClients(data)
     }
-    searchClients()
+    
+    // Debounce slightly to prevent spamming DB
+    const timeoutId = setTimeout(searchClients, 300)
+    return () => clearTimeout(timeoutId)
   }, [clientSearch])
 
   const scrollToBottom = () => {
     setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
   }
 
-  // IV. BOUTIQUE ACTIONS
+  // V. ACTIONS
   const handleToggleStatus = async () => {
     if (!selectedThread) return
     const newStatus = selectedThread.status === 'open' ? 'closed' : 'open'
     
-    const { data } = await supabase
+    // Optimistic update
+    const updatedThread = { ...selectedThread, status: newStatus }
+    setSelectedThread(updatedThread)
+
+    await supabase
       .from('chat_threads')
       .update({ status: newStatus, updated_at: new Date().toISOString() })
       .eq('id', selectedThread.id)
-      .select(`*, profiles!client_id (full_name, country, email, phone)`)
-      .single()
-
-    if (data) setSelectedThread(data)
   }
 
   const handleStartChat = async (e: React.FormEvent) => {
@@ -175,6 +179,7 @@ export default function AdminSupportCenter() {
           content: firstMessage
         }])
 
+        // Fetch full thread details with profile relation
         const { data: fullThread } = await supabase
           .from('chat_threads')
           .select(`*, profiles!client_id (full_name, email, country, phone)`)
@@ -189,8 +194,8 @@ export default function AdminSupportCenter() {
         setClientSearch('')
       }
     } catch (err) {
-      console.error("Initialization Failed")
-      alert("Error initializing chat. Check connection.")
+      console.error("Initialization Failed", err)
+      alert("Error initializing chat. Please try again.")
     }
   }
 
@@ -199,7 +204,18 @@ export default function AdminSupportCenter() {
     if (!newMessage.trim() || !adminId || !selectedThread) return
 
     const content = newMessage
-    setNewMessage('')
+    setNewMessage('') // Clear input immediately
+
+    // Optimistic UI update
+    const tempMsg = {
+        id: `temp-${Date.now()}`,
+        content,
+        sender_type: 'admin',
+        created_at: new Date().toISOString(),
+        thread_id: selectedThread.id
+    }
+    setMessages(prev => [...prev, tempMsg])
+    scrollToBottom()
 
     await supabase.from('messages').insert([
       { thread_id: selectedThread.id, sender_id: adminId, sender_type: 'admin', content }
@@ -267,7 +283,7 @@ export default function AdminSupportCenter() {
                   <h3 className="text-sm font-bold text-black uppercase">{selectedThread.profiles?.full_name}</h3>
                   <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase">
                     {selectedThread.status === 'open' ? (
-                      <span className="text-green-500">Active Support</span>
+                      <span className="text-green-600">Active Support</span>
                     ) : (
                       <span className="text-gray-400">Resolved</span>
                     )}
@@ -288,7 +304,7 @@ export default function AdminSupportCenter() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-gray-50/20">
+            <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-gray-50/20 custom-scrollbar">
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex flex-col ${msg.sender_type === 'admin' ? 'items-end' : 'items-start'}`}>
                   <div className={`max-w-[85%] md:max-w-[70%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${
@@ -312,7 +328,7 @@ export default function AdminSupportCenter() {
                   value={newMessage} 
                   onChange={(e) => setNewMessage(e.target.value)} 
                   placeholder="Type a message..." 
-                  className="flex-1 bg-gray-50 border border-gray-100 rounded-xl py-4 px-6 text-sm outline-none focus:border-gold"
+                  className="flex-1 bg-gray-50 border border-gray-100 rounded-xl py-4 px-6 text-sm outline-none focus:border-gold transition-all"
                 />
                 <button type="submit" className="w-14 h-14 bg-black text-gold rounded-xl flex items-center justify-center hover:bg-gold hover:text-black transition-all shadow-md active:scale-95">
                   <Send size={20} />
@@ -345,13 +361,13 @@ export default function AdminSupportCenter() {
                       placeholder="Search..." 
                       value={clientSearch} 
                       onChange={(e) => setClientSearch(e.target.value)} 
-                      className="w-full bg-gray-50 border border-gray-100 rounded-xl py-3 pl-10 pr-4 text-xs font-bold" 
+                      className="w-full bg-gray-50 border border-gray-100 rounded-xl py-3 pl-10 pr-4 text-xs font-bold focus:border-gold outline-none transition-all" 
                     />
                   </div>
                   {clients.length > 0 && (
-                    <div className="bg-white border border-gray-100 rounded-xl mt-2 overflow-hidden shadow-lg">
+                    <div className="bg-white border border-gray-100 rounded-xl mt-2 overflow-hidden shadow-lg max-h-40 overflow-y-auto">
                       {clients.map((client) => (
-                        <button key={client.id} type="button" onClick={() => { setSelectedClient(client); setClientSearch(client.full_name); setClients([]); }} className="w-full flex items-center gap-4 p-4 hover:bg-gold/5 text-left border-b border-gray-50 last:border-0">
+                        <button key={client.id} type="button" onClick={() => { setSelectedClient(client); setClientSearch(client.full_name); setClients([]); }} className="w-full flex items-center gap-4 p-4 hover:bg-gold/5 text-left border-b border-gray-50 last:border-0 transition-colors">
                           <span className="text-[10px] font-bold uppercase">{client.full_name}</span>
                         </button>
                       ))}
@@ -362,11 +378,11 @@ export default function AdminSupportCenter() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">Subject</label>
-                    <input value={newChatSubject} onChange={(e) => setNewChatSubject(e.target.value)} className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs font-bold" required />
+                    <input value={newChatSubject} onChange={(e) => setNewChatSubject(e.target.value)} className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs font-bold outline-none focus:border-gold transition-all" required />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">Initial Message</label>
-                    <textarea value={firstMessage} onChange={(e) => setFirstMessage(e.target.value)} rows={3} className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm resize-none" required />
+                    <textarea value={firstMessage} onChange={(e) => setFirstMessage(e.target.value)} rows={3} className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm resize-none outline-none focus:border-gold transition-all" required />
                   </div>
                 </div>
 

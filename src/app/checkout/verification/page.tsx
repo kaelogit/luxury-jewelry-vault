@@ -26,7 +26,7 @@ export default function PaymentVerificationPage() {
       .single()
 
     if (error) {
-      setError("Vault Synchronization Error")
+      setError("Unable to sync order details")
       return
     }
 
@@ -62,7 +62,7 @@ export default function PaymentVerificationPage() {
         const response = await fetch(endpoint)
         const blockchainData = await response.json()
 
-        // logic: Detection based on unconfirmed vs confirmed balance
+        // Logic: Detection based on unconfirmed vs confirmed balance
         if (blockchainData.total_received > 0) {
           setStatus('detected')
           
@@ -84,11 +84,11 @@ export default function PaymentVerificationPage() {
         .eq('id', orderId)
 
       if (!updateError) {
-        // 2. AUDIT FIX: Update Delivery Logs for the "Perfect Line"
+        // 2. AUDIT FIX: Update Delivery Logs for history
         await supabase.from('delivery_logs').insert({
             order_id: orderId,
-            milestone: 'Payment Verified via Network Consensus',
-            location: 'Global Mainnet Node'
+            milestone: 'Payment Verified',
+            location: 'Payment Network'
         })
 
         setStatus('confirmed')
@@ -102,12 +102,12 @@ export default function PaymentVerificationPage() {
 
   if (!orderId) return (
     <div className="h-screen flex items-center justify-center bg-gray-50">
-        <p className="uppercase font-black text-[10px] tracking-[0.4em] text-red-500">Invalid Registry ID</p>
+        <p className="uppercase font-bold text-[10px] tracking-widest text-red-500">Invalid Order ID</p>
     </div>
   )
 
   return (
-    <main className="min-h-screen bg-ivory-50 flex items-center justify-center p-6">
+    <main className="min-h-screen bg-ivory-50 flex items-center justify-center p-6 font-sans">
       <div className="max-w-xl w-full space-y-12">
         
         {/* HEADER */}
@@ -123,10 +123,10 @@ export default function PaymentVerificationPage() {
           
           <div className="space-y-2">
             <h1 className="text-4xl md:text-5xl font-bold text-obsidian-900 font-serif italic tracking-tight">
-              Network <span className="text-gold not-italic">Consensus</span>
+              Verifying <span className="text-gold not-italic">Payment</span>
             </h1>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em]">
-              Scanning {order?.payment_method} Ledger • Order #{orderId.slice(0, 8)}
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              Scanning {order?.payment_method} Network • Order #{orderId.slice(0, 8)}
             </p>
           </div>
         </header>
@@ -135,7 +135,7 @@ export default function PaymentVerificationPage() {
         <div className="bg-white border border-ivory-200 rounded-[2.5rem] p-10 shadow-2xl space-y-8 relative overflow-hidden">
           <div className="space-y-6">
             <StatusRow 
-              label="Scanning Network Nodes" 
+              label="Connecting to Network" 
               active={status === 'scanning'} 
               done={status !== 'scanning'} 
             />
@@ -145,7 +145,7 @@ export default function PaymentVerificationPage() {
               done={status === 'confirmed'} 
             />
             <StatusRow 
-              label="Authenticating Asset Allocation" 
+              label="Confirming Transfer" 
               active={status === 'confirmed'} 
               done={status === 'confirmed'} 
             />
@@ -154,11 +154,11 @@ export default function PaymentVerificationPage() {
           <div className="pt-8 border-t border-ivory-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShieldCheck size={14} className="text-gold" />
-              <span className="text-[9px] font-bold text-obsidian-900 uppercase tracking-widest">Protocol Secured</span>
+              <span className="text-[9px] font-bold text-obsidian-900 uppercase tracking-widest">Secure Connection</span>
             </div>
             <div className="flex items-center gap-2">
                 <Globe size={12} className="text-gray-300" />
-                <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">Mainnet Live</span>
+                <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">Live Status</span>
             </div>
           </div>
         </div>
@@ -167,9 +167,9 @@ export default function PaymentVerificationPage() {
         {error && <p className="text-center text-[10px] text-red-500 font-bold uppercase tracking-widest">{error}</p>}
 
         {/* FOOTER NOTICE */}
-        <p className="text-center text-[9px] text-gray-400 font-bold uppercase tracking-[0.2em] leading-relaxed px-10">
-          This secure window will automatically update upon network confirmation. 
-          Please maintain this connection until the handshake is finalized.
+        <p className="text-center text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-relaxed px-10">
+          This window will update automatically once payment is confirmed. 
+          Please do not close this tab.
         </p>
       </div>
     </main>
@@ -178,9 +178,9 @@ export default function PaymentVerificationPage() {
 
 function StatusRow({ label, active, done }: { label: string, active: boolean, done: boolean }) {
   return (
-    <div className={`flex items-center gap-5 transition-all duration-700 ${active || done ? 'opacity-100' : 'opacity-20'}`}>
+    <div className={`flex items-center gap-5 transition-all duration-700 ${active || done ? 'opacity-100' : 'opacity-30'}`}>
       <div className={`w-1.5 h-1.5 rounded-full ${done ? 'bg-gold shadow-[0_0_10px_gold]' : active ? 'bg-gold animate-pulse' : 'bg-gray-200'}`} />
-      <span className={`text-[11px] font-bold uppercase tracking-widest flex-1 ${done ? 'text-gray-300 line-through' : 'text-obsidian-900'}`}>
+      <span className={`text-[11px] font-bold uppercase tracking-widest flex-1 ${done ? 'text-gray-400 line-through' : 'text-obsidian-900'}`}>
         {label}
       </span>
       {active && !done && <Loader2 size={14} className="text-gold animate-spin" />}

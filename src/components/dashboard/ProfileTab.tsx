@@ -3,12 +3,12 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { 
-  User, MapPin, Phone, 
+  MapPin, Phone, 
   ShieldCheck, Edit3, Save, 
   Globe, Lock, Smartphone, ChevronRight,
   UserCircle
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase' // FIX: Using instance factory
+import { createClient } from '@/lib/supabase' 
 import { useRouter } from 'next/navigation'
 
 interface ProfileTabProps {
@@ -16,7 +16,7 @@ interface ProfileTabProps {
 }
 
 export default function ProfileTab({ profile }: ProfileTabProps) {
-  const supabase = createClient() // AUDIT FIX: Initialize factory once
+  const supabase = createClient()
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -40,11 +40,9 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
 
       if (!error) {
         setIsEditing(false)
-        // router.refresh() is the "Greater" way to re-fetch server data 
-        // without a harsh browser white-flicker reload.
         router.refresh()
       } else {
-        console.error("Profile update failed:", error.message)
+        console.error("Update failed:", error.message)
       }
     }
     setLoading(false)
@@ -53,7 +51,7 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
   return (
     <div className="max-w-4xl space-y-12 md:space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
       
-      {/* I. HEADER AREA */}
+      {/* I. HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-gray-100 pb-10">
         <div className="space-y-1">
           <p className="text-[10px] font-bold text-gold uppercase tracking-[0.3em]">Profile</p>
@@ -71,7 +69,7 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
           </button>
         ) : (
           <div className="flex gap-4">
-             <button onClick={() => setIsEditing(false)} className="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-red-500 transition-colors">Discard</button>
+             <button onClick={() => setIsEditing(false)} className="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-red-500 transition-colors">Cancel</button>
              <button 
               onClick={handleUpdate}
               disabled={loading}
@@ -83,7 +81,7 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
         )}
       </div>
 
-      {/* II. IDENTITY & CONTACT GRID */}
+      {/* II. DETAILS FORM */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
         <ProfileField 
           label="Full Name" 
@@ -102,7 +100,7 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
           onChange={(v:any) => setFormData({...formData, phone: v})}
         />
         
-        {/* SHIPPING SECTION */}
+        {/* SHIPPING BLOCK */}
         <div className="md:col-span-2 pt-12 border-t border-gray-100">
            <div className="flex items-center gap-4 mb-10">
               <p className="text-[10px] font-bold text-black uppercase tracking-[0.2em]">Shipping Details</p>
@@ -119,10 +117,10 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
         </div>
       </div>
 
-      {/* III. SECURITY SECTION */}
+      {/* III. SECURITY */}
       <section className="pt-16 border-t border-gray-100 space-y-10">
         <div className="space-y-2 text-center md:text-left">
-            <h4 className="text-[11px] font-bold text-black uppercase tracking-[0.2em]">Data & Security</h4>
+            <h4 className="text-[11px] font-bold text-black uppercase tracking-[0.2em]">Security</h4>
             <p className="text-[10px] text-gray-400 max-w-md uppercase tracking-widest leading-relaxed">Manage your credentials and authentication security.</p>
         </div>
 
@@ -134,18 +132,18 @@ export default function ProfileTab({ profile }: ProfileTabProps) {
             />
             <SecurityCard 
                 title="Device Access" 
-                desc="Manage 2FA and secure login methods." 
+                desc="Manage secure login methods." 
                 icon={<Smartphone size={18} />} 
                 status="Active"
             />
         </div>
       </section>
 
-      {/* PRIVACY DISCLOSURE */}
+      {/* PRIVACY NOTE */}
       <div className="mt-12 p-8 bg-gray-50 rounded-3xl border border-gray-100 flex flex-col md:flex-row items-center md:items-start gap-6 text-center md:text-left">
         <ShieldCheck className="text-gold shrink-0 mt-1" size={24} strokeWidth={1.5} />
         <p className="text-[10px] text-gray-500 font-medium uppercase tracking-widest leading-relaxed">
-          Your personal data is encrypted and managed with absolute discretion. Contact details are strictly used for delivery logistics and insurance purposes. We never disclose client information to external parties.
+          Your personal data is encrypted and managed with absolute discretion. Contact details are strictly used for delivery logistics and insurance purposes.
         </p>
       </div>
 
@@ -167,12 +165,12 @@ function ProfileField({ label, value, icon, isEditing, onChange, placeholder }: 
           value={value}
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-white border border-gray-200 rounded-2xl p-5 text-sm text-black outline-none focus:border-gold transition-all shadow-inner placeholder:text-gray-300"
+          className="w-full bg-white border border-gray-200 rounded-2xl p-5 text-sm text-black outline-none focus:border-gold transition-all shadow-inner placeholder:text-gray-300 font-medium"
         />
       ) : (
         <div className="min-h-[50px] flex items-center border-l border-gray-100 pl-8 group-hover:border-gold transition-all duration-500">
           <p className="text-lg font-bold text-black uppercase tracking-tight">
-            {value || <span className="text-gray-200 normal-case font-medium">Not provided</span>}
+            {value || <span className="text-gray-300 normal-case font-medium italic text-sm">Not provided</span>}
           </p>
         </div>
       )}

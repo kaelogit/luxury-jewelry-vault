@@ -8,9 +8,9 @@ import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 
 /**
- * ARCHITECTURAL CONSTANTS
+ * CONFIGURATION
  */
-const CATEGORIES = ['All Collections', 'Watches', 'Diamonds', 'Gold']
+const CATEGORIES = ['All', 'Watches', 'Diamonds', 'Gold']
 const INITIAL_BATCH = 30
 const LOAD_MORE_BATCH = 35
 
@@ -19,31 +19,30 @@ export default function CollectionClient({ initialProducts }: { initialProducts:
   const router = useRouter()
 
   // State Management
-  const [products] = useState(initialProducts) // Initialized from server
+  const [products] = useState(initialProducts)
   const [loading, setLoading] = useState(false)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [activeFilters, setActiveFilters] = useState<string[]>([])
   const [displayLimit, setDisplayLimit] = useState(INITIAL_BATCH)
 
   /**
-   * 1. URL SYNCHRONIZATION
+   * 1. URL SYNC
    */
   const activeCategory = useMemo(() => {
     const cat = searchParams.get('cat')
-    if (!cat) return 'All Collections'
+    if (!cat || cat === 'all') return 'All'
     return cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase()
   }, [searchParams])
 
   const setActiveCategory = (cat: string) => {
-    const query = cat === 'All Collections' ? '/collection' : `/collection?cat=${cat.toLowerCase()}`
+    const query = cat === 'All' ? '/collection' : `/collection?cat=${cat.toLowerCase()}`
     setActiveFilters([]) 
     setDisplayLimit(INITIAL_BATCH) 
     router.push(query, { scroll: false })
   }
 
   /**
-   * 2. DYNAMIC DISCOVERY ENGINE
-   * Extracts every unique brand, purity, and stone shape from the current dataset
+   * 2. DYNAMIC FILTERS
    */
   const dynamicFilters = useMemo(() => {
     const filters = {
@@ -75,11 +74,11 @@ export default function CollectionClient({ initialProducts }: { initialProducts:
   }, [products])
 
   /**
-   * 3. REFINED FILTERING LOGIC
+   * 3. FILTER LOGIC
    */
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
-      const matchesCategory = activeCategory === 'All Collections' || 
+      const matchesCategory = activeCategory === 'All' || 
         product.category?.toLowerCase() === activeCategory.toLowerCase()
       
       const matchesFilters = activeFilters.length === 0 || 
@@ -107,15 +106,16 @@ export default function CollectionClient({ initialProducts }: { initialProducts:
   const handleLoadMore = () => setDisplayLimit(prev => prev + LOAD_MORE_BATCH)
 
   return (
-    <main className="min-h-screen bg-ivory-100 pt-32 pb-20 px-6 md:px-12 selection:bg-gold selection:text-white">
+    <main className="min-h-screen bg-ivory-100 pt-32 pb-20 px-6 md:px-12 selection:bg-gold selection:text-white font-sans">
       <div className="max-w-screen-2xl mx-auto">
         
+        {/* HEADER */}
         <header className="mb-12 space-y-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-ivory-300 pb-6">
             <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-gold">The Gallery</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-gold">Shop</p>
               <h1 className="text-4xl md:text-7xl font-medium text-obsidian-900 font-serif italic tracking-tight capitalize">
-                {activeCategory === 'All Collections' ? 'The Vault' : activeCategory}
+                {activeCategory === 'All' ? 'Full Collection' : activeCategory}
               </h1>
             </div>
             
@@ -138,21 +138,24 @@ export default function CollectionClient({ initialProducts }: { initialProducts:
           </div>
         </header>
 
+        {/* TOOLBAR */}
         <div className="flex justify-between items-center py-6 border-b border-ivory-300 mb-10">
           <button 
             onClick={() => setIsFilterOpen(!isFilterOpen)}
             className="flex items-center gap-3 text-[11px] font-black uppercase tracking-widest text-obsidian-900 hover:text-gold transition-colors"
           >
             <SlidersHorizontal size={16} /> 
-            {isFilterOpen ? 'Close Refinements' : 'Refine Selection'}
+            {isFilterOpen ? 'Hide Filters' : 'Filter Items'}
           </button>
           
           <p className="text-[10px] text-obsidian-400 font-bold uppercase tracking-widest">
-            Asset Count: {visibleProducts.length} / {filteredProducts.length}
+            Showing {visibleProducts.length} of {filteredProducts.length}
           </p>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-12">
+          
+          {/* SIDEBAR FILTERS */}
           <AnimatePresence>
             {isFilterOpen && (
               <motion.aside 
@@ -162,19 +165,20 @@ export default function CollectionClient({ initialProducts }: { initialProducts:
                 className="hidden lg:block space-y-12 shrink-0 overflow-hidden"
               >
                 {dynamicFilters.brands.length > 0 && <FilterGroup title="Brand" options={dynamicFilters.brands} active={activeFilters} onToggle={toggleFilter} />}
-                {(activeCategory === 'Gold' || activeCategory === 'All Collections') && dynamicFilters.purity.length > 0 && <FilterGroup title="Gold Purity" options={dynamicFilters.purity} active={activeFilters} onToggle={toggleFilter} />}
-                {(activeCategory === 'Diamonds' || activeCategory === 'All Collections') && (
+                {(activeCategory === 'Gold' || activeCategory === 'All') && dynamicFilters.purity.length > 0 && <FilterGroup title="Purity" options={dynamicFilters.purity} active={activeFilters} onToggle={toggleFilter} />}
+                {(activeCategory === 'Diamonds' || activeCategory === 'All') && (
                   <>
                     {dynamicFilters.clarity.length > 0 && <FilterGroup title="Clarity" options={dynamicFilters.clarity} active={activeFilters} onToggle={toggleFilter} />}
-                    {dynamicFilters.shapes.length > 0 && <FilterGroup title="Stone Shape" options={dynamicFilters.shapes} active={activeFilters} onToggle={toggleFilter} />}
+                    {dynamicFilters.shapes.length > 0 && <FilterGroup title="Shape" options={dynamicFilters.shapes} active={activeFilters} onToggle={toggleFilter} />}
                   </>
                 )}
-                {(activeCategory === 'Watches' || activeCategory === 'All Collections') && dynamicFilters.movement.length > 0 && <FilterGroup title="Movement" options={dynamicFilters.movement} active={activeFilters} onToggle={toggleFilter} />}
-                {dynamicFilters.subCategories.length > 0 && <FilterGroup title="Type" options={dynamicFilters.subCategories} active={activeFilters} onToggle={toggleFilter} />}
+                {(activeCategory === 'Watches' || activeCategory === 'All') && dynamicFilters.movement.length > 0 && <FilterGroup title="Movement" options={dynamicFilters.movement} active={activeFilters} onToggle={toggleFilter} />}
+                {dynamicFilters.subCategories.length > 0 && <FilterGroup title="Category" options={dynamicFilters.subCategories} active={activeFilters} onToggle={toggleFilter} />}
               </motion.aside>
             )}
           </AnimatePresence>
 
+          {/* PRODUCT GRID */}
           <div className="flex-1">
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-16">
               {visibleProducts.map((product) => (
@@ -188,7 +192,7 @@ export default function CollectionClient({ initialProducts }: { initialProducts:
                   <div className="w-14 h-14 rounded-full border border-ivory-300 flex items-center justify-center group-hover:bg-obsidian-900 group-hover:border-obsidian-900 transition-all duration-700">
                     <Plus size={20} className="text-obsidian-900 group-hover:text-gold transition-colors" />
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-[0.4em] text-obsidian-400 group-hover:text-obsidian-900">Discover More</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.4em] text-obsidian-400 group-hover:text-obsidian-900">Load More</span>
                 </button>
               </div>
             )}
@@ -211,13 +215,13 @@ function ProductCard({ product }: { product: any }) {
       <div className="aspect-[4/5] bg-white border border-ivory-300 rounded-sm overflow-hidden relative shadow-sm hover:shadow-2xl transition-all duration-1000">
         <div className="absolute top-4 left-4 z-10">
           <span className="bg-white/95 backdrop-blur-sm px-3 py-1.5 text-[8px] font-bold uppercase tracking-[0.2em] text-gold border border-gold/10 rounded-full">
-            {product.brand || product.gold_purity || 'Vault Asset'}
+            {product.brand || product.gold_purity || 'Exclusive'}
           </span>
         </div>
         {product.images?.[0] ? (
           <Image src={product.images[0]} alt={product.name} fill className="object-cover group-hover:scale-110 transition-transform duration-1000" />
         ) : (
-          <div className="w-full h-full bg-ivory-200 flex items-center justify-center text-[9px] font-bold tracking-widest text-obsidian-300 italic">No Visual Available</div>
+          <div className="w-full h-full bg-ivory-100 flex items-center justify-center text-[9px] font-bold tracking-widest text-obsidian-300 italic">No Image</div>
         )}
       </div>
       <div className="space-y-1.5 px-1">
@@ -254,22 +258,22 @@ function MobileFilterMenu({ isOpen, onClose, activeCategory, activeFilters, onTo
           <div className="relative bg-white rounded-t-[3rem] p-10 max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="w-12 h-1 bg-ivory-300 rounded-full mx-auto mb-8" />
             <div className="flex justify-between items-center mb-10 sticky top-0 bg-white z-10 py-2">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-obsidian-900">Refine Selection</h3>
+              <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-obsidian-900">Filters</h3>
               <button onClick={onClose} className="p-2 bg-ivory-100 rounded-full"><X size={20} /></button>
             </div>
             <div className="space-y-12 pb-20">
                {dynamicFilters.brands.length > 0 && <FilterGroup title="Brand" options={dynamicFilters.brands} active={activeFilters} onToggle={onToggle} />}
-               {(activeCategory === 'Gold' || activeCategory === 'All Collections') && dynamicFilters.purity.length > 0 && <FilterGroup title="Gold Purity" options={dynamicFilters.purity} active={activeFilters} onToggle={onToggle} />}
-               {(activeCategory === 'Diamonds' || activeCategory === 'All Collections') && (
+               {(activeCategory === 'Gold' || activeCategory === 'All') && dynamicFilters.purity.length > 0 && <FilterGroup title="Purity" options={dynamicFilters.purity} active={activeFilters} onToggle={onToggle} />}
+               {(activeCategory === 'Diamonds' || activeCategory === 'All') && (
                  <>
                    {dynamicFilters.clarity.length > 0 && <FilterGroup title="Clarity" options={dynamicFilters.clarity} active={activeFilters} onToggle={onToggle} />}
-                   {dynamicFilters.shapes.length > 0 && <FilterGroup title="Stone Shape" options={dynamicFilters.shapes} active={activeFilters} onToggle={onToggle} />}
+                   {dynamicFilters.shapes.length > 0 && <FilterGroup title="Shape" options={dynamicFilters.shapes} active={activeFilters} onToggle={onToggle} />}
                  </>
                )}
             </div>
             <div className="sticky bottom-0 left-0 right-0 bg-white pt-6">
               <button onClick={onClose} className="w-full py-5 bg-obsidian-900 text-white text-[10px] font-black uppercase tracking-[0.4em] rounded-xl shadow-2xl">
-                Apply Refinements
+                Show Results
               </button>
             </div>
           </div>

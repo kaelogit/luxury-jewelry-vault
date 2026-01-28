@@ -1,137 +1,146 @@
 'use server'
 
 import { createClient } from '@supabase/supabase-js'
+import { createServer } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
 
-// Institutional Admin Access
-const supabase = createClient(
+/**
+ * INSTITUTIONAL ADMIN CLIENT
+ * Uses the Service Role Key to manage the vault inventory regardless of RLS.
+ */
+const adminSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
 /**
- * HELPER: File Upload Handler
- * Centralized logic for uploading images, videos, and 3D models
+ * HELPER: Secure File Upload
+ * Generates a unique path and returns the public URL for the asset.
  */
 async function uploadFile(file: File, folder: string) {
-  if (!file || file.size === 0) return null
+  if (!file || !(file instanceof File) || file.size === 0) return null
   
   const fileExt = file.name.split('.').pop()
   const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
   const filePath = `${folder}/${fileName}`
 
-  const { data, error } = await supabase.storage
+  const { error } = await adminSupabase.storage
     .from('vault-media')
-    .upload(filePath, file)
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false
+    })
 
-  if (error) throw error
+  if (error) throw new Error(`Media Upload Failed: ${error.message}`)
 
-  const { data: publicUrl } = supabase.storage
+  const { data } = adminSupabase.storage
     .from('vault-media')
     .getPublicUrl(filePath)
     
-  return publicUrl.publicUrl
+  return data.publicUrl
 }
 
 /**
- * CREATE ACTION
+ * EXPOSED ACTIONS
  */
 export async function createProduct(formData: FormData) {
   return processAsset(null, formData)
 }
 
-/**
- * UPDATE ACTION
- */
 export async function updateProduct(id: string, formData: FormData) {
   return processAsset(id, formData)
 }
 
 /**
- * CORE LOGIC: MASTER ASSET PROCESSOR
- * Synchronizes multi-media and technical specs with the Vault database
+ * MASTER ASSET PROCESSOR
+ * Audited for Next.js 15 and Supabase JSONB standards.
  */
 async function processAsset(id: string | null, formData: FormData) {
   try {
-    // 1. EXTRACT CORE IDENTITY
+    // 1. IDENTITY & AUTHENTICATION
+    const sessionClient = await createServer()
+    const { data: { user } } = await sessionClient.auth.getUser()
+    
+    // Safety: Verify is_admin metadata
+    if (!user || user.app_metadata?.is_admin !== true) {
+      throw new Error("Maison Security: Unauthorized Access Attempt")
+    }
+
+    // 2. DATA EXTRACTION
     const name = formData.get('name') as string
     const category = formData.get('category') as string 
-    const brand = formData.get('brand') as string
-    const sku = formData.get('sku') as string 
+    const sub_category = formData.get('sub_category') as string
     const priceRaw = formData.get('price') as string
     const price = parseFloat(priceRaw.replace(/[^0-9.]/g, ''))
 
-    // 2. EXTRACT TECHNICAL ATTRIBUTES
-    const gold_purity = formData.get('gold_purity') as string 
-    const weight_grams = formData.get('weight_grams') as string 
-    const carat_weight = formData.get('carat_weight') as string 
-    const diamond_clarity = formData.get('diamond_clarity') as string
-    const diamond_color = formData.get('diamond_color') as string
-    const shape = formData.get('shape') as string
-    const movement = formData.get('movement') as string
-    const case_material = formData.get('case_material') as string
-
-    // 3. MEDIA PROCESSING (Files vs URLs)
+    // 3. MEDIA HANDLING (Audit: Fixed image merging logic)
     const videoFile = formData.get('video_file') as File
     const modelFile = formData.get('model_file') as File
-    const imageFiles = formData.getAll('images') as File[]
+    const newImages = formData.getAll('images') as File[]
+    
     const existingImagesRaw = formData.get('existing_images') as string
     const existingImages = existingImagesRaw ? JSON.parse(existingImagesRaw) : []
 
-    // Upload New Media
-    const newImageUrls = await Promise.all(imageFiles.map(file => uploadFile(file, 'products')))
-    const uploadedVideoUrl = await uploadFile(videoFile, 'cinematics')
-    const uploadedModelUrl = await uploadFile(modelFile, 'spatial-models')
+    // Parallel uploads for performance
+    const [uploadedNewImages, uploadedVideo, uploadedModel] = await Promise.all([
+      Promise.all(newImages.map(file => uploadFile(file, 'products'))),
+      uploadFile(videoFile, 'cinematics'),
+      uploadFile(modelFile, 'spatial-models')
+    ])
 
-    // Final Media State
-    const finalImages = [...existingImages, ...newImageUrls.filter(url => url !== null)]
-    const video_url = uploadedVideoUrl || (formData.get('video_url') as string)
-    const three_d_model = uploadedModelUrl || (formData.get('three_d_model') as string)
+    const finalImages = [...existingImages, ...uploadedNewImages.filter(Boolean)]
+    const video_url = uploadedVideo || (formData.get('video_url') as string) || null
+    const three_d_model = uploadedModel || (formData.get('three_d_model') as string) || null
 
-    // 4. SLUG GENERATION (For new items only)
-    const slug = name.toLowerCase().trim().replace(/[^\w ]+/g, '').replace(/ +/g, '-')
+    // 4. SMART SLUG GENERATION (Audit: Added uniqueness)
+    const baseSlug = name.toLowerCase().trim().replace(/[^\w ]+/g, '').replace(/ +/g, '-')
+    const finalSlug = id ? undefined : `${baseSlug}-${Math.random().toString(36).substring(7)}`
 
+    // 5. CONSTRUCT ASSET PAYLOAD
+    // We only map fields relevant to the category to keep DB clean
     const assetData: any = {
       name,
       price,
       description: formData.get('description') as string,
       category,
-      brand: brand || null,
-      sku: sku || null,
+      sub_category: sub_category || null,
+      brand: (formData.get('brand') as string) || null,
+      sku: (formData.get('sku') as string) || null,
       images: finalImages,
-      video_url: video_url || null,
-      three_d_model: three_d_model || null,
+      video_url,
+      three_d_model,
       
-      // Dynamic Mappings
-      gold_purity: category === 'Gold' ? gold_purity : null,
-      weight_grams: category === 'Gold' ? parseFloat(weight_grams) : null,
-      carat_weight: category === 'Diamonds' ? parseFloat(carat_weight) : null,
-      diamond_clarity: category === 'Diamonds' ? diamond_clarity : null,
-      diamond_color: category === 'Diamonds' ? diamond_color : null,
-      shape: category === 'Diamonds' ? shape : null,
-      movement: category === 'Watches' ? movement : null,
-      case_material: category === 'Watches' ? case_material : null,
+      // Category Specific Attributes
+      gold_purity: category === 'Gold' ? formData.get('gold_purity') : null,
+      weight_grams: category === 'Gold' ? parseFloat(formData.get('weight_grams') as string) || 0 : null,
+      carat_weight: category === 'Diamonds' ? parseFloat(formData.get('carat_weight') as string) || 0 : null,
+      diamond_clarity: category === 'Diamonds' ? formData.get('diamond_clarity') : null,
+      diamond_color: category === 'Diamonds' ? formData.get('diamond_color') : null,
+      shape: category === 'Diamonds' ? formData.get('shape') : null,
+      movement: category === 'Watches' ? formData.get('movement') : null,
+      case_material: category === 'Watches' ? formData.get('case_material') : null,
     }
 
-    if (!id) assetData.slug = slug // Only set slug on create
+    if (!id) assetData.slug = finalSlug
 
-    // 5. DATABASE SYNC
-    const query = id 
-      ? supabase.from('products').update(assetData).eq('id', id)
-      : supabase.from('products').insert([assetData])
+    // 6. DATABASE EXECUTION
+    const { data, error } = id 
+      ? await adminSupabase.from('products').update(assetData).eq('id', id).select().single()
+      : await adminSupabase.from('products').insert([assetData]).select().single()
 
-    const { error } = await query
     if (error) throw error
 
-    // 6. CACHE REFRESH
-    revalidatePath('/collection')
+    // 7. GLOBAL CACHE REVALIDATION
     revalidatePath('/admin/inventory')
-    if (!id) revalidatePath(`/product/${slug}`)
+    revalidatePath('/collection')
+    if (id) {
+      revalidatePath(`/product/${data.slug}`)
+    }
     
-    return { success: true }
+    return { success: true, data }
 
   } catch (err: any) {
     console.error("Vault Registry Error:", err.message)
-    return { error: err.message }
+    return { error: err.message || "Failed to process asset" }
   }
 }

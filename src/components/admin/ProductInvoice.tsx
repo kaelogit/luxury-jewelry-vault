@@ -6,244 +6,264 @@ import {
   Text, 
   View, 
   Document, 
-  StyleSheet, 
-  Font 
+  StyleSheet 
 } from '@react-pdf/renderer'
 
-// Register fonts for a professional luxury standard
-Font.register({
-  family: 'Playfair Display',
-  src: 'https://fonts.gstatic.com/s/playfairdisplay/v21/nuFvD7K3dQY3K8p8z356396EBA.ttf',
-  fontStyle: 'italic',
-  fontWeight: 'medium'
-})
-
+// --- I. STYLE CONFIGURATION ---
+// Removed external Font registration to fix the "Unknown font format" crash.
+// We are now using standard Helvetica (System Font) for maximum reliability.
 const styles = StyleSheet.create({
   page: {
-    padding: 60,
+    padding: 50,
     backgroundColor: '#FFFFFF',
-    fontFamily: 'Helvetica',
-    color: '#050505',
+    fontFamily: 'Helvetica', 
+    color: '#121212',
+    fontSize: 10,
   },
+  // HEADER
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F0E8',
-    paddingBottom: 40,
     marginBottom: 40,
-  },
-  logoSection: {
-    flexDirection: 'column',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#E5E5E5',
+    paddingBottom: 20,
   },
   brandName: {
     fontSize: 24,
-    fontWeight: 'bold',
-    letterSpacing: 2,
     textTransform: 'uppercase',
+    color: '#000000',
+    fontWeight: 'bold',
   },
   brandSub: {
-    fontSize: 8,
-    color: '#C5A028',
+    fontSize: 7,
+    color: '#C5A028', 
+    textTransform: 'uppercase',
+    letterSpacing: 2,
     marginTop: 4,
-    fontWeight: 'bold',
-    letterSpacing: 1,
   },
-  invoiceInfo: {
+  invoiceMeta: {
     textAlign: 'right',
   },
   invoiceTitle: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#949494',
+    fontSize: 14,
     textTransform: 'uppercase',
+    marginBottom: 4,
+    fontWeight: 'bold',
+  },
+  invoiceId: {
+    fontSize: 9,
+    color: '#6B7280',
     letterSpacing: 1,
   },
-  invoiceNumber: {
-    fontSize: 16,
-    marginTop: 5,
-    fontWeight: 'bold',
-  },
-  sectionTitle: {
-    fontSize: 8,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-    color: '#949494',
-    letterSpacing: 1.5,
-    marginBottom: 10,
-  },
-  addressBox: {
+
+  // CLIENT DATA
+  infoGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 60,
-  },
-  addressText: {
-    fontSize: 10,
-    lineHeight: 1.6,
-    color: '#3D3D3D',
-  },
-  table: {
-    width: 'auto',
     marginBottom: 40,
+  },
+  sectionLabel: {
+    fontSize: 7,
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 10,
+    lineHeight: 1.5,
+    color: '#111827',
+  },
+
+  // TABLE
+  table: {
+    width: '100%',
+    marginBottom: 30,
   },
   tableHeader: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#050505',
+    borderBottomColor: '#000000',
     paddingBottom: 8,
-    marginBottom: 15,
+    marginBottom: 10,
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 12,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#F2F0E8',
+    borderBottomColor: '#F3F4F6',
+    paddingVertical: 12,
   },
-  colDesc: { width: '60%' },
+  colDesc: { width: '50%' },
+  colSku: { width: '20%' },
   colQty: { width: '10%', textAlign: 'center' },
-  colPrice: { width: '30%', textAlign: 'right' },
+  colPrice: { width: '20%', textAlign: 'right' },
   
-  label: { fontSize: 8, fontWeight: 'bold', textTransform: 'uppercase' },
-  itemTitle: { fontSize: 11, fontWeight: 'bold' },
-  itemSub: { fontSize: 9, color: '#666666', marginTop: 2 },
-  
+  colHeaderLabel: {
+    fontSize: 7,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+
+  // SUMMARY
   totalSection: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 20,
+    marginTop: 10,
   },
   totalBox: {
     width: 200,
-    borderTopWidth: 2,
-    borderTopColor: '#C5A028',
-    paddingTop: 15,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    paddingVertical: 4,
   },
-  grandTotalLabel: { fontSize: 12, fontWeight: 'bold' },
-  grandTotalValue: { fontSize: 18, fontWeight: 'bold', color: '#C5A028' },
-  
+  grandTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: '#C5A028',
+    paddingTop: 10,
+    marginTop: 10,
+  },
+  totalLabel: {
+    fontSize: 9,
+    color: '#6B7280',
+  },
+  grandTotalValue: {
+    fontSize: 14,
+    color: '#C5A028',
+    fontWeight: 'bold',
+  },
+
+  // FOOTER
   footer: {
     position: 'absolute',
-    bottom: 60,
-    left: 60,
-    right: 60,
-    borderTopWidth: 1,
-    borderTopColor: '#F2F0E8',
-    paddingTop: 20,
+    bottom: 50,
+    left: 50,
+    right: 50,
     textAlign: 'center',
+    borderTopWidth: 0.5,
+    borderTopColor: '#E5E5E5',
+    paddingTop: 15,
   },
   footerText: {
-    fontSize: 8,
-    color: '#949494',
+    fontSize: 7,
+    color: '#9CA3AF',
+    letterSpacing: 0.5,
     lineHeight: 1.5,
   }
 })
 
 export function ProductInvoice({ order }: { order: any }) {
-  const date = new Date(order.created_at).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+  // PREVENT CRASH: Stop building if data is empty
+  if (!order) return null;
+
+  const date = new Date(order.created_at || Date.now()).toLocaleDateString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric'
   })
 
+  const items = Array.isArray(order.items) ? order.items : []
+  const total = Number(order.total_price || 0)
+
   return (
-    <Document>
+    <Document title={`Invoice-${order.id}`}>
       <Page size="A4" style={styles.page}>
-        {/* HEADER */}
+        
+        {/* I. HEADER */}
         <View style={styles.header}>
-          <View style={styles.logoSection}>
+          <View>
             <Text style={styles.brandName}>Lume Vault</Text>
-            <Text style={styles.brandSub}>OFFICIAL PURCHASE DOCUMENTATION</Text>
+            <Text style={styles.brandSub}>Official Purchase Record</Text>
           </View>
-          <View style={styles.invoiceInfo}>
-            <Text style={styles.invoiceTitle}>Invoice Summary</Text>
-            <Text style={styles.invoiceNumber}>#{order.order_number || order.id.slice(0, 8).toUpperCase()}</Text>
-            <Text style={{ fontSize: 10, marginTop: 5 }}>{date}</Text>
+          <View style={styles.invoiceMeta}>
+            <Text style={styles.invoiceTitle}>Invoice</Text>
+            <Text style={styles.invoiceId}>Ref: {order.tracking_number || order.id?.slice(0, 8).toUpperCase() || 'PENDING'}</Text>
+            <Text style={[styles.invoiceId, { marginTop: 2 }]}>{date}</Text>
           </View>
         </View>
 
-        {/* CUSTOMER & PAYMENT DETAILS */}
-        <View style={styles.addressBox}>
+        {/* II. CLIENT & PAYMENT */}
+        <View style={styles.infoGrid}>
           <View style={{ width: '45%' }}>
-            <Text style={styles.sectionTitle}>Customer Information</Text>
-            <Text style={[styles.itemTitle, { marginBottom: 5 }]}>{order.client_name}</Text>
-            <Text style={styles.addressText}>{order.shipping_address || 'Address on file'}</Text>
+            <Text style={styles.sectionLabel}>Client Information</Text>
+            <Text style={[styles.infoText, { fontWeight: 'bold' }]}>{order.client_name || 'Guest User'}</Text>
+            <Text style={styles.infoText}>{order.shipping_address || 'Collection from Vault'}</Text>
+            <Text style={styles.infoText}>{order.email || order.client_email || ''}</Text>
           </View>
-          <View style={{ width: '45%', textAlign: 'right' }}>
-            <Text style={styles.sectionTitle}>Order Status</Text>
-            <Text style={[styles.itemTitle, { color: '#C5A028' }]}>{order.status.toUpperCase()}</Text>
-            <Text style={[styles.addressText, { marginTop: 4 }]}>Method: {order.payment_method || 'Electronic Transfer'}</Text>
+          <View style={{ width: '45%', alignItems: 'flex-end' }}>
+            <Text style={styles.sectionLabel}>Verification Status</Text>
+            <Text style={[styles.infoText, { color: '#C5A028', fontWeight: 'bold', textTransform: 'uppercase' }]}>
+              {order.status || 'Active'}
+            </Text>
+            <Text style={styles.infoText}>Payment: {order.payment_method || 'Direct Payment'}</Text>
           </View>
         </View>
 
-        {/* PRODUCTS TABLE */}
+        {/* III. ITEMS */}
         <View style={styles.table}>
           <View style={styles.tableHeader}>
-            <View style={styles.colDesc}><Text style={styles.label}>Product Description</Text></View>
-            <View style={styles.colQty}><Text style={styles.label}>Qty</Text></View>
-            <View style={styles.colPrice}><Text style={styles.label}>Total Price</Text></View>
+            <View style={styles.colDesc}><Text style={styles.colHeaderLabel}>Item</Text></View>
+            <View style={styles.colSku}><Text style={styles.colHeaderLabel}>Reference</Text></View>
+            <View style={styles.colQty}><Text style={styles.colHeaderLabel}>Qty</Text></View>
+            <View style={styles.colPrice}><Text style={styles.colHeaderLabel}>Price</Text></View>
           </View>
 
-          {order.items && order.items.length > 0 ? order.items.map((item: any, i: number) => (
-            <View key={i} style={styles.tableRow}>
+          {items.length > 0 ? items.map((item: any, i: number) => (
+            <View key={i} style={styles.tableRow} wrap={false}>
               <View style={styles.colDesc}>
-                <Text style={styles.itemTitle}>{item.name || 'Fine Jewelry Product'}</Text>
-                <Text style={styles.itemSub}>SKU: {item.sku || 'N/A'}</Text>
+                <Text style={{ fontWeight: 'bold' }}>{item.name || 'Luxury Reference'}</Text>
+                <Text style={{ fontSize: 7, color: '#6B7280', marginTop: 2 }}>{item.category || 'Fine Jewelry'}</Text>
               </View>
-              <View style={styles.colQty}><Text style={styles.addressText}>{item.quantity || 1}</Text></View>
+              <View style={styles.colSku}>
+                <Text style={{ fontSize: 8 }}>{item.sku || item.id?.slice(0, 8) || '--'}</Text>
+              </View>
+              <View style={styles.colQty}>
+                <Text>1</Text>
+              </View>
               <View style={styles.colPrice}>
-                <Text style={[styles.addressText, { fontWeight: 'bold' }]}>
-                  ${Number(item.price || order.total_price).toLocaleString()}
-                </Text>
+                <Text>${Number(item.price || 0).toLocaleString()}</Text>
               </View>
             </View>
           )) : (
             <View style={styles.tableRow}>
-              <View style={styles.colDesc}>
-                <Text style={styles.itemTitle}>Transaction Detail</Text>
-                <Text style={styles.itemSub}>Retail Order Reference</Text>
-              </View>
-              <View style={styles.colQty}><Text style={styles.addressText}>1</Text></View>
-              <View style={styles.colPrice}>
-                <Text style={[styles.addressText, { fontWeight: 'bold' }]}>
-                  ${Number(order.total_price).toLocaleString()}
-                </Text>
-              </View>
+              <View style={styles.colDesc}><Text>Registered Assets</Text></View>
+              <View style={styles.colSku}><Text>--</Text></View>
+              <View style={styles.colQty}><Text>1</Text></View>
+              <View style={styles.colPrice}><Text>${total.toLocaleString()}</Text></View>
             </View>
           )}
         </View>
 
-        {/* SUMMARY SECTION */}
+        {/* IV. TOTALS */}
         <View style={styles.totalSection}>
           <View style={styles.totalBox}>
             <View style={styles.totalRow}>
-              <Text style={styles.addressText}>Subtotal</Text>
-              <Text style={styles.addressText}>${Number(order.total_price).toLocaleString()}</Text>
+              <Text style={styles.totalLabel}>Subtotal</Text>
+              <Text>${total.toLocaleString()}</Text>
             </View>
             <View style={styles.totalRow}>
-              <Text style={styles.addressText}>Insured Shipping</Text>
-              <Text style={styles.addressText}>Free</Text>
+              <Text style={styles.totalLabel}>Insurance & Handling</Text>
+              <Text>Included</Text>
             </View>
-            <View style={[styles.totalRow, { marginTop: 10 }]}>
-              <Text style={styles.grandTotalLabel}>Grand Total</Text>
-              <Text style={styles.grandTotalValue}>${Number(order.total_price).toLocaleString()}</Text>
+            <View style={styles.grandTotalRow}>
+              <Text style={{ fontWeight: 'bold' }}>Total Price</Text>
+              <Text style={styles.grandTotalValue}>${total.toLocaleString()}</Text>
             </View>
           </View>
         </View>
 
-        {/* FOOTER */}
+        {/* V. FOOTER */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            This document is an official confirmation of your order with Lume Vault.
-          </Text>
-          <Text style={[styles.footerText, { marginTop: 5, fontWeight: 'bold' }]}>
-            All products are securely insured during transit. Thank you for choosing Lume Vault.
+          <Text style={styles.footerText}>LUME VAULT INTERNATIONAL • PRIVATE ASSET REGISTRY</Text>
+          <Text style={[styles.footerText, { marginTop: 4 }]}>
+            This document serves as official proof of payment and ownership.
+            Please retain for insurance and registry purposes.
           </Text>
         </View>
+
       </Page>
     </Document>
   )

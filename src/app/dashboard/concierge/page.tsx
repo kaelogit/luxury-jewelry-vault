@@ -11,7 +11,7 @@ export default async function ConciergePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
 
-  // 2. Initial Data Acquisition (Prevents Loading Flickers)
+  // 2. Initial Data Acquisition
   const { data: threads } = await supabase
     .from('chat_threads')
     .select('*')
@@ -19,13 +19,17 @@ export default async function ConciergePage() {
     .order('updated_at', { ascending: false })
 
   return (
-    <Suspense fallback={
-      <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <Loader2 className="animate-spin text-gold" size={32} />
-        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Opening Support Terminal...</p>
-      </div>
-    }>
+    <Suspense fallback={<LoadingState />}>
       <ConciergeClient userId={user.id} initialThreads={threads || []} />
     </Suspense>
+  )
+}
+
+function LoadingState() {
+  return (
+    <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
+      <Loader2 className="animate-spin text-gold" size={32} strokeWidth={1.5} />
+      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400">Connecting to Concierge</p>
+    </div>
   )
 }

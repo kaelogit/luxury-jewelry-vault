@@ -71,7 +71,7 @@ export default function CheckoutPage() {
           items: items, 
           status: 'confirmed',
           tracking_number: trackingSignature,
-          courier_name: 'Lume Private Delivery'
+          courier_name: 'Private Courier'
         })
         .select()
         .single()
@@ -80,18 +80,18 @@ export default function CheckoutPage() {
 
       await supabase.from('delivery_logs').insert({
         order_id: order.id,
-        milestone: 'Order Confirmed & Registry Updated',
-        location: 'Lume Vault HQ'
+        milestone: 'Order Placed',
+        location: 'Online Store'
       })
 
-      useSelectionStore.getState().clearCart()
+      useSelectionStore.getState().clearBag()
 
       const isCrypto = ['BTC', 'ETH', 'USDT'].includes(formData.paymentMethod)
       router.push(isCrypto ? `/checkout/verification?orderId=${order.id}` : `/checkout/success?orderId=${order.id}`)
       
     } catch (err: any) {
-      console.error("Critical Checkout Failure:", err)
-      alert("Checkout Error: " + (err.message || "Please verify your information."))
+      console.error("Checkout Failure:", err)
+      alert("Error processing order. Please verify your details.")
     } finally {
       setIsSubmitting(false)
     }
@@ -100,21 +100,22 @@ export default function CheckoutPage() {
   if (loadingAuth) return (
     <div className="h-screen bg-white flex flex-col items-center justify-center gap-4">
       <Loader2 className="text-gold animate-spin" size={32} />
-      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Securing Session</p>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Loading Checkout</p>
     </div>
   )
 
   if (items.length === 0) return (
     <main className="h-screen bg-gray-50 flex flex-col items-center justify-center gap-6">
       <ShoppingBag className="text-gray-200" size={48} />
-      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Your selection is empty</p>
-      <button onClick={() => router.push('/collection')} className="text-gold text-xs font-bold uppercase hover:underline">Return to Collection</button>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Your bag is empty</p>
+      <button onClick={() => router.push('/collection')} className="text-gold text-xs font-bold uppercase hover:underline">Return to Gallery</button>
     </main>
   )
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-20">
+    <main className="min-h-screen bg-gray-50 pb-20 font-sans">
       
+      {/* MOBILE SUMMARY TOGGLE */}
       <div className="lg:hidden sticky top-[95px] md:top-[100px] z-[90] bg-white border-b border-ivory-300 shadow-sm">
         <button 
           onClick={() => setIsMobileSummaryOpen(!isMobileSummaryOpen)}
@@ -143,7 +144,7 @@ export default function CheckoutPage() {
                   </div>
                 ))}
                 <div className="pt-4 border-t border-ivory-300 flex justify-between items-center">
-                  <span className="text-[10px] font-bold uppercase text-gold">Total Valuation</span>
+                  <span className="text-[10px] font-bold uppercase text-gold">Total</span>
                   <span className="text-xl font-serif italic font-bold text-obsidian-900">${totalPrice.toLocaleString()}</span>
                 </div>
               </div>
@@ -191,7 +192,7 @@ export default function CheckoutPage() {
                     <div className="w-16 h-20 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0 relative">
                       <img src={item.image} className="w-full h-full object-cover" alt={item.name} />
                       {item.quantity > 1 && (
-                         <span className="absolute top-1 right-1 bg-black text-white text-[8px] px-1.5 py-0.5 rounded-md font-bold">x{item.quantity}</span>
+                          <span className="absolute top-1 right-1 bg-black text-white text-[8px] px-1.5 py-0.5 rounded-md font-bold">x{item.quantity}</span>
                       )}
                     </div>
                     <div className="flex-1">
@@ -205,11 +206,11 @@ export default function CheckoutPage() {
 
               <div className="border-t border-gray-100 pt-6 space-y-3">
                 <div className="flex justify-between items-center text-[10px] font-bold uppercase">
-                  <span className="text-gray-400">Secure Vault Delivery</span>
-                  <span className="text-green-600 tracking-widest uppercase">Complimentary</span>
+                  <span className="text-gray-400">Shipping</span>
+                  <span className="text-green-600 tracking-widest uppercase">Free</span>
                 </div>
                 <div className="flex justify-between items-center pt-2">
-                  <span className="text-xs font-bold text-black uppercase tracking-widest">Grand Total</span>
+                  <span className="text-xs font-bold text-black uppercase tracking-widest">Total</span>
                   <span className="text-3xl font-bold text-black font-serif italic">${totalPrice.toLocaleString()}</span>
                 </div>
               </div>
@@ -218,7 +219,7 @@ export default function CheckoutPage() {
             <div className="p-6 bg-black text-white rounded-2xl flex gap-4 items-start shadow-xl border border-gold/20">
               <ShieldCheck className="text-gold shrink-0" size={20} />
               <p className="text-[10px] text-gray-400 leading-relaxed font-medium uppercase tracking-tight">
-                This transaction is protected by end-to-end encryption. Your assets will remain in Lume Vault custody until handover.
+                This transaction is secure and encrypted. We do not store your payment credentials.
               </p>
             </div>
           </div>

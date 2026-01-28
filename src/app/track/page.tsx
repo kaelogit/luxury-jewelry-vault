@@ -6,24 +6,24 @@ import {
   Search, Truck, ArrowRight, Loader2, CheckCircle2
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { createClient } from '@/lib/supabase' // FIX: Use createClient for 'use client' files
+import { createClient } from '@/lib/supabase'
 
-// THE PERFECT LINE: User-facing milestones
+// Milestones
 const USER_STAGES = [
-  { id: 'confirmed', label: 'Order Confirmed', icon: <Package size={14} /> },
-  { id: 'dispatched', label: 'Secure Transit', icon: <Truck size={14} /> },
-  { id: 'delivered', label: 'Handover Complete', icon: <CheckCircle2 size={14} /> }
+  { id: 'confirmed', label: 'Confirmed', icon: <Package size={14} /> },
+  { id: 'dispatched', label: 'In Transit', icon: <Truck size={14} /> },
+  { id: 'delivered', label: 'Delivered', icon: <CheckCircle2 size={14} /> }
 ]
 
 export default function GlobalTracking() {
-  const supabase = createClient() // FIX: Initialize the client properly
+  const supabase = createClient()
   const [orderId, setOrderId] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [orderData, setOrderData] = useState<any>(null)
   const [latestLog, setLatestLog] = useState<any>(null)
   const [error, setError] = useState('')
 
-  // REAL-TIME SYNC: Listen for the "Perfect Line" to move while viewing
+  // REAL-TIME SYNC
   useEffect(() => {
     if (!orderData?.id) return
 
@@ -62,7 +62,7 @@ export default function GlobalTracking() {
     const cleanId = orderId.trim()
 
     try {
-      // 1. Fetch Order (Master Status)
+      // 1. Fetch Order
       const { data: order, error: orderError } = await supabase
           .from('orders')
           .select('*')
@@ -72,7 +72,7 @@ export default function GlobalTracking() {
       if (order && !orderError) {
           setOrderData(order)
           
-          // 2. Fetch Latest Milestone only
+          // 2. Fetch Latest Milestone
           const { data: log } = await supabase
               .from('delivery_logs')
               .select('*')
@@ -83,28 +83,28 @@ export default function GlobalTracking() {
           
           setLatestLog(log)
       } 
-      // 3. Static fallback for demonstration/fallback
-      else if (cleanId.toUpperCase() === 'LUME-I7CWE1ZM') {
-          setOrderData({ id: 'fallback', tracking_number: 'LUME-I7CWE1ZM', status: 'dispatched' })
+      // 3. Fallback for demo
+      else if (cleanId.toUpperCase() === 'LUME-DEMO') {
+          setOrderData({ id: 'demo', tracking_number: 'LUME-DEMO', status: 'dispatched' })
           setLatestLog({ milestone: 'In Transit to Local Vault', location: 'Zurich Hub' })
       } else {
-          setError('Tracking number not found in our secure registry.')
+          setError('Order not found. Please check your reference number.')
       }
     } catch (err) {
-      setError('A connection error occurred. Please try again.')
+      setError('Connection error. Please try again.')
     } finally {
       setIsSearching(false)
     }
   }
 
   return (
-    <main className="min-h-screen bg-ivory-100 pt-32 pb-32 px-6 selection:bg-gold selection:text-white">
+    <main className="min-h-screen bg-ivory-100 pt-32 pb-32 px-6 md:px-12 font-sans">
       <div className="max-w-4xl mx-auto space-y-16">
         
         {/* I. HEADER */}
         <header className="text-center space-y-6">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[10px] font-bold uppercase tracking-[0.4em] text-gold flex justify-center items-center gap-3">
-             <ShieldCheck size={16} strokeWidth={1.5} /> Secure Tracking
+             <ShieldCheck size={16} strokeWidth={1.5} /> Secure Logistics
           </motion.div>
           <h1 className="text-5xl md:text-7xl font-medium text-obsidian-900 font-serif italic tracking-tight">
             Track <span className="text-gold not-italic">Order.</span>
@@ -116,13 +116,13 @@ export default function GlobalTracking() {
           <form onSubmit={handleSearch} className="relative group">
             <input 
               type="text" 
-              placeholder="ENTER TRACKING NUMBER..."
+              placeholder="ENTER ORDER NUMBER..."
               value={orderId}
               onChange={(e) => setOrderId(e.target.value)}
-              className="w-full bg-white border border-ivory-300 rounded-2xl py-7 px-10 text-obsidian-900 font-bold uppercase outline-none focus:border-gold transition-all shadow-xl placeholder:text-ivory-300"
+              className="w-full bg-white border border-ivory-300 rounded-2xl py-6 px-8 text-obsidian-900 font-bold uppercase outline-none focus:border-gold transition-all shadow-lg placeholder:text-ivory-300 text-sm tracking-widest"
             />
-            <button className="absolute right-3 top-3 bottom-3 px-8 bg-obsidian-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-gold hover:text-obsidian-900 transition-all flex items-center gap-3">
-              {isSearching ? <Loader2 className="animate-spin" size={14}/> : 'Locate'} <ArrowRight size={14} />
+            <button className="absolute right-3 top-3 bottom-3 px-6 bg-obsidian-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-gold hover:text-obsidian-900 transition-all flex items-center gap-3 active:scale-95">
+              {isSearching ? <Loader2 className="animate-spin" size={14}/> : 'Track'} 
             </button>
           </form>
           {error && <p className="text-center mt-6 text-red-500 font-bold uppercase tracking-widest text-[10px]">{error}</p>}
@@ -133,7 +133,7 @@ export default function GlobalTracking() {
           {orderData && (
             <motion.div 
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              className="bg-white border border-ivory-300 rounded-3xl p-10 md:p-16 shadow-2xl space-y-20"
+              className="bg-white border border-ivory-300 rounded-[2.5rem] p-10 md:p-16 shadow-2xl space-y-20"
             >
                 {/* PROGRESS BAR */}
                 <div className="relative">
@@ -145,19 +145,20 @@ export default function GlobalTracking() {
                     initial={{ width: 0 }}
                     animate={{ 
                       width: orderData.status === 'delivered' ? '100%' : 
-                             orderData.status === 'dispatched' ? '50%' : '5%' 
+                             orderData.status === 'dispatched' ? '50%' : '0%' 
                     }}
+                    transition={{ duration: 1, ease: "easeInOut" }}
                     className="absolute top-1/2 left-0 h-[1px] bg-gold -translate-y-1/2 shadow-[0_0_15px_rgba(212,175,55,0.4)]"
                   />
 
                   <div className="relative flex justify-between">
                     {USER_STAGES.map((stage) => {
                       const isComplete = (stage.id === 'confirmed') || 
-                                       (stage.id === 'dispatched' && (orderData.status === 'dispatched' || orderData.status === 'delivered')) ||
-                                       (stage.id === 'delivered' && orderData.status === 'delivered');
+                                         (stage.id === 'dispatched' && (orderData.status === 'dispatched' || orderData.status === 'delivered')) ||
+                                         (stage.id === 'delivered' && orderData.status === 'delivered');
                       
                       return (
-                        <div key={stage.id} className="flex flex-col items-center gap-4 bg-white px-2 md:px-4">
+                        <div key={stage.id} className="flex flex-col items-center gap-4 bg-white px-2 md:px-4 z-10">
                           <div className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all duration-1000 ${
                             isComplete ? 'bg-black border-black text-gold scale-110' : 'bg-white border-ivory-200 text-ivory-300'
                           }`}>
@@ -173,14 +174,14 @@ export default function GlobalTracking() {
                 </div>
 
                 {/* STATUS DETAILS */}
-                <div className="bg-ivory-50 rounded-2xl p-8 md:p-12 flex flex-col md:flex-row justify-between items-center gap-8">
+                <div className="bg-ivory-50 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row justify-between items-center gap-8 border border-ivory-200">
                   <div className="space-y-2 text-center md:text-left">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-gold">Current Location</p>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-gold">Status</p>
                     <h3 className="text-2xl md:text-3xl font-serif italic text-obsidian-900">
-                      {latestLog?.location || 'Logistics Center'}
+                      {latestLog?.milestone || 'Order Processing'}
                     </h3>
                     <p className="text-[10px] text-obsidian-400 font-bold uppercase tracking-widest">
-                      {latestLog?.milestone || 'Processing Shipment'}
+                      Location: {latestLog?.location || 'Main Hub'}
                     </p>
                   </div>
                   
@@ -189,7 +190,7 @@ export default function GlobalTracking() {
                   <div className="space-y-1 text-center md:text-right">
                     <p className="text-[9px] font-bold uppercase tracking-widest text-obsidian-300">Reference</p>
                     <p className="text-sm font-mono font-bold text-obsidian-900 uppercase">
-                      {orderData.tracking_number || 'LUME-PENDING'}
+                      {orderData.tracking_number || 'PENDING'}
                     </p>
                   </div>
                 </div>

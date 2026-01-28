@@ -1,6 +1,11 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+/**
+ * INSTITUTIONAL SERVER CLIENT
+ * Orchestrates secure, server-side communication with the Lume Vault database.
+ * Optimized for Next.js 15 async cookie handling.
+ */
 export const createServer = async () => {
   const cookieStore = await cookies()
 
@@ -18,7 +23,8 @@ export const createServer = async () => {
               cookieStore.set(name, value, options)
             )
           } catch {
-            // Safe to ignore in Server Components
+            // The setAll method is required for Server Actions and Route Handlers.
+            // It is safely ignored in Server Components as they cannot write cookies.
           }
         },
       },
