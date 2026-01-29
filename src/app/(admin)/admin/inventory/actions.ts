@@ -4,21 +4,15 @@ import { createClient } from '@supabase/supabase-js'
 import { createServer } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
 
-/**
- * INSTITUTIONAL ADMIN CLIENT
- * Uses the Service Role Key to manage the vault inventory regardless of RLS.
- */
+// Use Service Role Key to bypass RLS policies for admin uploads
 const adminSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-/**
- * HELPER: Secure File Upload
- * Generates a unique path and returns the public URL for the asset.
- */
 async function uploadFile(file: File, folder: string) {
-  if (!file || !(file instanceof File) || file.size === 0) return null
+  // CRITICAL FIX: Ignore empty file inputs
+  if (!file || !(file instanceof File) || file.size === 0 || file.name === 'undefined') return null
   
   const fileExt = file.name.split('.').pop()
   const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
@@ -40,9 +34,6 @@ async function uploadFile(file: File, folder: string) {
   return data.publicUrl
 }
 
-/**
- * EXPOSED ACTIONS
- */
 export async function createProduct(formData: FormData) {
   return processAsset(null, formData)
 }
@@ -51,53 +42,50 @@ export async function updateProduct(id: string, formData: FormData) {
   return processAsset(id, formData)
 }
 
-/**
- * MASTER ASSET PROCESSOR
- * Audited for Next.js 15 and Supabase JSONB standards.
- */
 async function processAsset(id: string | null, formData: FormData) {
   try {
-    // 1. IDENTITY & AUTHENTICATION
     const sessionClient = await createServer()
     const { data: { user } } = await sessionClient.auth.getUser()
     
-    // Safety: Verify is_admin metadata
+    // Auth Check
     if (!user || user.app_metadata?.is_admin !== true) {
-      throw new Error("Maison Security: Unauthorized Access Attempt")
+      throw new Error("Maison Security: Unauthorized Access")
     }
 
-    // 2. DATA EXTRACTION
     const name = formData.get('name') as string
     const category = formData.get('category') as string 
     const sub_category = formData.get('sub_category') as string
     const priceRaw = formData.get('price') as string
     const price = parseFloat(priceRaw.replace(/[^0-9.]/g, ''))
 
-    // 3. MEDIA HANDLING (Audit: Fixed image merging logic)
+    // MEDIA HANDLING - FIX: Filter out empty/ghost files
     const videoFile = formData.get('video_file') as File
     const modelFile = formData.get('model_file') as File
-    const newImages = formData.getAll('images') as File[]
+    const imagesArray = formData.getAll('images') as File[]
     
+    // Only process images that actually have content
+    const validNewImages = imagesArray.filter(f => f.size > 0)
+
     const existingImagesRaw = formData.get('existing_images') as string
     const existingImages = existingImagesRaw ? JSON.parse(existingImagesRaw) : []
 
-    // Parallel uploads for performance
+    // Parallel Uploads
     const [uploadedNewImages, uploadedVideo, uploadedModel] = await Promise.all([
-      Promise.all(newImages.map(file => uploadFile(file, 'products'))),
+      Promise.all(validNewImages.map(file => uploadFile(file, 'products'))),
       uploadFile(videoFile, 'cinematics'),
       uploadFile(modelFile, 'spatial-models')
     ])
 
+    // Clean nulls from the array
     const finalImages = [...existingImages, ...uploadedNewImages.filter(Boolean)]
     const video_url = uploadedVideo || (formData.get('video_url') as string) || null
     const three_d_model = uploadedModel || (formData.get('three_d_model') as string) || null
 
-    // 4. SMART SLUG GENERATION (Audit: Added uniqueness)
+    // Slug Generator
     const baseSlug = name.toLowerCase().trim().replace(/[^\w ]+/g, '').replace(/ +/g, '-')
     const finalSlug = id ? undefined : `${baseSlug}-${Math.random().toString(36).substring(7)}`
 
-    // 5. CONSTRUCT ASSET PAYLOAD
-    // We only map fields relevant to the category to keep DB clean
+    // Data Mapping
     const assetData: any = {
       name,
       price,
@@ -110,7 +98,7 @@ async function processAsset(id: string | null, formData: FormData) {
       video_url,
       three_d_model,
       
-      // Category Specific Attributes
+      // Attributes
       gold_purity: category === 'Gold' ? formData.get('gold_purity') : null,
       weight_grams: category === 'Gold' ? parseFloat(formData.get('weight_grams') as string) || 0 : null,
       carat_weight: category === 'Diamonds' ? parseFloat(formData.get('carat_weight') as string) || 0 : null,
@@ -123,19 +111,16 @@ async function processAsset(id: string | null, formData: FormData) {
 
     if (!id) assetData.slug = finalSlug
 
-    // 6. DATABASE EXECUTION
+    // DB Operation
     const { data, error } = id 
       ? await adminSupabase.from('products').update(assetData).eq('id', id).select().single()
       : await adminSupabase.from('products').insert([assetData]).select().single()
 
     if (error) throw error
 
-    // 7. GLOBAL CACHE REVALIDATION
+    // Revalidate paths to update UI instantly
     revalidatePath('/admin/inventory')
     revalidatePath('/collection')
-    if (id) {
-      revalidatePath(`/product/${data.slug}`)
-    }
     
     return { success: true, data }
 

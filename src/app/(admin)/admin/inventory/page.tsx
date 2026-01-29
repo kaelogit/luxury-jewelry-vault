@@ -68,7 +68,7 @@ export default function AdminInventory() {
     setFormData({
       ...formData,
       category: val,
-      sub_category: SUB_CATEGORIES[val][0] // Reset sub-category to first option of the new category
+      sub_category: SUB_CATEGORIES[val][0]
     })
   }
 
@@ -84,6 +84,8 @@ export default function AdminInventory() {
 
   const removePreview = (index: number) => {
     setPreviews(prev => prev.filter((_, i) => i !== index))
+    // Important: Reset file input so user can re-add if needed
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   async function handleDelete(id: string) {
@@ -104,7 +106,7 @@ export default function AdminInventory() {
     setIsSubmitting(true)
     
     const form = new FormData(e.currentTarget as HTMLFormElement)
-    // Append the images we want to keep
+    // Pass existing images explicitly so server knows what to keep
     form.append('existing_images', JSON.stringify(previews.filter(p => p.startsWith('http'))))
 
     let result;
@@ -119,7 +121,7 @@ export default function AdminInventory() {
       fetchProducts()
       setEditingId(null)
       setPreviews([])
-      setFormData({ category: 'Watches', sub_category: 'Sport' }) // Reset form
+      setFormData({ category: 'Watches', sub_category: 'Sport' })
     } else {
       alert(result.error)
     }
@@ -301,7 +303,7 @@ export default function AdminInventory() {
                   )}
                 </div>
 
-                {/* MEDIA LINKS */}
+                {/* MEDIA LINKS - FIXED TO PREVENT EMPTY FILE SUBMISSION */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-gray-100 pt-8">
                     <div className="space-y-3">
                       <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2"><Video size={14}/> Cinematic Clip (.mp4)</label>
