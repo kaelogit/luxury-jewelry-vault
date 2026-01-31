@@ -4,10 +4,16 @@ import { createClient } from '@supabase/supabase-js'
 import { createServer } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
 
+// --- 1. CRITICAL SAFETY CHECK ---
+// This prevents the "Infinite Spinner" by failing instantly if Vercel keys are missing.
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error("SERVER ERROR: Supabase Environment Variables are missing. Check Vercel Settings.")
+}
+
 // Connect to Supabase with Admin privileges
 const adminSupabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
 // Helper: Uploads a file only if it is real
@@ -15,21 +21,29 @@ async function uploadFile(file: File, folder: string) {
   // CRITICAL FIX: If file is empty or undefined, STOP immediately.
   if (!file || file.size === 0 || file.name === 'undefined') return null
   
-  const fileExt = file.name.split('.').pop()
-  const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
-  const filePath = `${folder}/${fileName}`
+  try {
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+    const filePath = `${folder}/${fileName}`
 
-  const { error } = await adminSupabase.storage
-    .from('vault-media')
-    .upload(filePath, file, { cacheControl: '3600', upsert: false })
+    const { error } = await adminSupabase.storage
+      .from('vault-media')
+      .upload(filePath, file, { cacheControl: '3600', upsert: false })
 
-  if (error) throw new Error(`Upload Error: ${error.message}`)
+    if (error) {
+        console.error(`Upload failed for ${filePath}:`, error.message)
+        return null
+    }
 
-  const { data } = adminSupabase.storage
-    .from('vault-media')
-    .getPublicUrl(filePath)
-    
-  return data.publicUrl
+    const { data } = adminSupabase.storage
+      .from('vault-media')
+      .getPublicUrl(filePath)
+      
+    return data.publicUrl
+  } catch (error) {
+    console.error("Upload Exception:", error)
+    return null
+  }
 }
 
 export async function createProduct(formData: FormData) {
@@ -47,7 +61,7 @@ async function processAsset(id: string | null, formData: FormData) {
     const { data: { user } } = await sessionClient.auth.getUser()
     
     if (!user || user.app_metadata?.is_admin !== true) {
-      throw new Error("Access Denied: You are not an admin.")
+      return { error: "Access Denied: You do not have admin permissions." }
     }
 
     // 2. Extract Basic Data
@@ -83,6 +97,7 @@ async function processAsset(id: string | null, formData: FormData) {
     const three_d_model = uploadedModel || (formData.get('existing_model') as string) || null
 
     // 4. Create Unique ID (Slug)
+    // Only generate slug for NEW items
     const baseSlug = name.toLowerCase().trim().replace(/[^\w ]+/g, '').replace(/ +/g, '-')
     const slug = id ? undefined : `${baseSlug}-${Math.random().toString(36).substring(7)}`
 
@@ -116,16 +131,17 @@ async function processAsset(id: string | null, formData: FormData) {
       ? await adminSupabase.from('products').update(productData).eq('id', id).select().single()
       : await adminSupabase.from('products').insert([productData]).select().single()
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
 
     // 7. Refresh Pages
     revalidatePath('/admin/inventory')
     revalidatePath('/collection')
+    if (data?.slug) revalidatePath(`/product/${data.slug}`)
     
     return { success: true, data }
 
   } catch (err: any) {
     console.error("Upload Error:", err.message)
-    return { error: err.message || "Something went wrong." }
+    return { error: err.message || "Something went wrong processing the asset." }
   }
 }
