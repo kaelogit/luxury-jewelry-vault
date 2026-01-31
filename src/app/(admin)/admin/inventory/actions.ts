@@ -9,8 +9,7 @@ export async function saveProduct(productData: any) {
     // 1. DYNAMIC KEY RESOLUTION
     // This looks for both the standard name and our 'MASTER_KEY' fallback
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.MASTER_KEY;
-
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlzZWppaHptbHNodmVsc293enRjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzQ3MjA2MCwiZXhwIjoyMDgzMDQ4MDYwfQ.z0cCDKxByOrPRC6Gc1FCf8RrTkAtzvXoY0CQ_HZWnr4";
     // --- CRITICAL AUDIT LOGS (Check Vercel Logs for these) ---
     console.log("--- PROD ENVIRONMENT AUDIT ---");
     console.log("URL Detection:", !!supabaseUrl);
