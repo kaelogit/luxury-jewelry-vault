@@ -1,12 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // 1. TURBOPACK OPTIMIZATION (Optional but recommended for v16)
-  // This helps resolve the "root directory" confusion you saw in your logs
-  // turbopack: {
-  //   root: '.',
-  // },
+  // 1. INCREASE UPLOAD LIMIT (The Fix for "Something went wrong")
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '100mb', // Default is 1MB. We need this for Videos/3D Models.
+    },
+  },
 
+  // 2. IMAGE OPTIMIZATION
   images: {
     minimumCacheTTL: 3600,
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
@@ -23,18 +25,20 @@ const nextConfig: NextConfig = {
         hostname: 'via.placeholder.com',
       },
       {
+        // Your specific Supabase project
         protocol: 'https',
         hostname: 'ysejihzmlshvelsowztc.supabase.co',
         pathname: '/storage/v1/object/public/**',
       },
       {
-        // Keep this during development, remove once all assets are migrated
+        // Wildcard fallback for flexibility
         protocol: 'https',
         hostname: '**.supabase.co',
       },
     ],
   },
   
+  // 3. SECURITY HEADERS
   async headers() {
     return [
       {
