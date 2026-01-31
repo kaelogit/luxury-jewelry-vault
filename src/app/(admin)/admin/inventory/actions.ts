@@ -4,15 +4,16 @@ import { createClient } from '@supabase/supabase-js'
 import { createServer } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
 
-// Use Service Role Key to bypass RLS policies for admin uploads
+// Connect to Supabase with Admin privileges
 const adminSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// Helper: Uploads a file only if it is real
 async function uploadFile(file: File, folder: string) {
-  // CRITICAL FIX: Ignore empty file inputs
-  if (!file || !(file instanceof File) || file.size === 0 || file.name === 'undefined') return null
+  // CRITICAL FIX: If file is empty or undefined, STOP immediately.
+  if (!file || file.size === 0 || file.name === 'undefined') return null
   
   const fileExt = file.name.split('.').pop()
   const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
@@ -20,12 +21,9 @@ async function uploadFile(file: File, folder: string) {
 
   const { error } = await adminSupabase.storage
     .from('vault-media')
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false
-    })
+    .upload(filePath, file, { cacheControl: '3600', upsert: false })
 
-  if (error) throw new Error(`Media Upload Failed: ${error.message}`)
+  if (error) throw new Error(`Upload Error: ${error.message}`)
 
   const { data } = adminSupabase.storage
     .from('vault-media')
@@ -44,49 +42,52 @@ export async function updateProduct(id: string, formData: FormData) {
 
 async function processAsset(id: string | null, formData: FormData) {
   try {
+    // 1. Verify Admin
     const sessionClient = await createServer()
     const { data: { user } } = await sessionClient.auth.getUser()
     
-    // Auth Check
     if (!user || user.app_metadata?.is_admin !== true) {
-      throw new Error("Maison Security: Unauthorized Access")
+      throw new Error("Access Denied: You are not an admin.")
     }
 
+    // 2. Extract Basic Data
     const name = formData.get('name') as string
     const category = formData.get('category') as string 
     const sub_category = formData.get('sub_category') as string
-    const priceRaw = formData.get('price') as string
-    const price = parseFloat(priceRaw.replace(/[^0-9.]/g, ''))
+    const price = parseFloat((formData.get('price') as string).replace(/[^0-9.]/g, ''))
 
-    // MEDIA HANDLING - FIX: Filter out empty/ghost files
+    // 3. Handle Files (The Fix for Infinite Loading)
     const videoFile = formData.get('video_file') as File
     const modelFile = formData.get('model_file') as File
-    const imagesArray = formData.getAll('images') as File[]
+    const rawImages = formData.getAll('images') as File[]
     
-    // Only process images that actually have content
-    const validNewImages = imagesArray.filter(f => f.size > 0)
+    // Filter out "Ghost" images (files with size 0)
+    const validImages = rawImages.filter(img => img.size > 0)
 
+    // Handle existing images (for edits)
     const existingImagesRaw = formData.get('existing_images') as string
     const existingImages = existingImagesRaw ? JSON.parse(existingImagesRaw) : []
 
-    // Parallel Uploads
-    const [uploadedNewImages, uploadedVideo, uploadedModel] = await Promise.all([
-      Promise.all(validNewImages.map(file => uploadFile(file, 'products'))),
+    // Upload everything in parallel
+    const [uploadedImages, uploadedVideo, uploadedModel] = await Promise.all([
+      Promise.all(validImages.map(f => uploadFile(f, 'products'))),
       uploadFile(videoFile, 'cinematics'),
       uploadFile(modelFile, 'spatial-models')
     ])
 
-    // Clean nulls from the array
-    const finalImages = [...existingImages, ...uploadedNewImages.filter(Boolean)]
-    const video_url = uploadedVideo || (formData.get('video_url') as string) || null
-    const three_d_model = uploadedModel || (formData.get('three_d_model') as string) || null
+    // Combine old images + new uploaded images
+    const finalImages = [...existingImages, ...uploadedImages.filter(Boolean)]
+    
+    // Keep old video/model if no new one was uploaded
+    const video_url = uploadedVideo || (formData.get('existing_video') as string) || null
+    const three_d_model = uploadedModel || (formData.get('existing_model') as string) || null
 
-    // Slug Generator
+    // 4. Create Unique ID (Slug)
     const baseSlug = name.toLowerCase().trim().replace(/[^\w ]+/g, '').replace(/ +/g, '-')
-    const finalSlug = id ? undefined : `${baseSlug}-${Math.random().toString(36).substring(7)}`
+    const slug = id ? undefined : `${baseSlug}-${Math.random().toString(36).substring(7)}`
 
-    // Data Mapping
-    const assetData: any = {
+    // 5. Prepare Database Object
+    const productData: any = {
       name,
       price,
       description: formData.get('description') as string,
@@ -97,8 +98,7 @@ async function processAsset(id: string | null, formData: FormData) {
       images: finalImages,
       video_url,
       three_d_model,
-      
-      // Attributes
+      // Smart Attributes (Only save what matters for the category)
       gold_purity: category === 'Gold' ? formData.get('gold_purity') : null,
       weight_grams: category === 'Gold' ? parseFloat(formData.get('weight_grams') as string) || 0 : null,
       carat_weight: category === 'Diamonds' ? parseFloat(formData.get('carat_weight') as string) || 0 : null,
@@ -109,23 +109,23 @@ async function processAsset(id: string | null, formData: FormData) {
       case_material: category === 'Watches' ? formData.get('case_material') : null,
     }
 
-    if (!id) assetData.slug = finalSlug
+    if (slug) productData.slug = slug
 
-    // DB Operation
+    // 6. Save to Database
     const { data, error } = id 
-      ? await adminSupabase.from('products').update(assetData).eq('id', id).select().single()
-      : await adminSupabase.from('products').insert([assetData]).select().single()
+      ? await adminSupabase.from('products').update(productData).eq('id', id).select().single()
+      : await adminSupabase.from('products').insert([productData]).select().single()
 
     if (error) throw error
 
-    // Revalidate paths to update UI instantly
+    // 7. Refresh Pages
     revalidatePath('/admin/inventory')
     revalidatePath('/collection')
     
     return { success: true, data }
 
   } catch (err: any) {
-    console.error("Vault Registry Error:", err.message)
-    return { error: err.message || "Failed to process asset" }
+    console.error("Upload Error:", err.message)
+    return { error: err.message || "Something went wrong." }
   }
 }
